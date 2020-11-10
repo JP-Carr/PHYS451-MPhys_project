@@ -14,7 +14,7 @@ from multiprocessing import cpu_count
 import subprocess as sp
 import os
 
-sim_iterations=1000 #3 minimum
+sim_iterations=5000 #3 minimum
 sim_method="SNPE"   #SNPE, SNLE, SNRE
 use_CUDA=False
 observe=True
@@ -123,11 +123,11 @@ _ = utils.pairplot(samples, limits=[[-2,2],[-2,2],[-2,2]], fig_size=(6,6))
 if observe==True:
     observation=torch.from_numpy(generate_het(H0=5.12e-25).data)
  #   print(observation.size())
-    #observation=torch.zeros(1440)
+ #   observation=torch.zeros(1440)
     print(observation)
     samples = posterior.sample((200,), x=observation)#,sample_with_mcmc=True)
     print(samples)
     print("-----------------------------------------")
-   # log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
-    #print(log_probability)
+    log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
+    print(log_probability)
 print("\a")
