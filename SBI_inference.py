@@ -6,7 +6,6 @@ import numpy as np
 import sys
 import time
 from bilby.core.prior import PriorDict, Uniform
-from PriorDictMod import PriorDictMod, distribution_array
 from torch.distributions.uniform import Uniform as torch_uni
 from HeterodynedData import generate_het
 import pickle
