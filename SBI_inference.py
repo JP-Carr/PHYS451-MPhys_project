@@ -10,16 +10,19 @@ from torch.distributions.uniform import Uniform as torch_uni
 from HeterodynedData import generate_het
 import pickle
 from multiprocessing import cpu_count
-
 import subprocess as sp
 import os
 
-sim_iterations=50000 #3 minimum
+sim_iterations=2000 #3 minimum
 sim_method="SNPE"   #SNPE, SNLE, SNRE
 use_CUDA=False
 observe=True
 save_posterior=True
 shutdown=False
+
+dist_vals={"H0*1e25": torch.tensor([0.0, 1e-22])*1e25#,    #parameter distributions [low, highs]
+             #  "phi0": [0.0, np.pi]
+               }
 
 def get_gpu_memory():
   _output_to_list = lambda x: x.decode('ascii').split('\n')[:-1]
@@ -58,9 +61,7 @@ except FileNotFoundError:
     start=time.time()
     sim_timer=[]
     
-    dist_vals={"h0": [0.0, 1e-22]#,    #parameter distributions [low, highs]
-             #  "phi0": [0.0, np.pi]
-               }
+    
     
     dist_lows=torch.tensor([float(dist_vals[i][0]) for i in dist_vals])
     dist_highs=torch.tensor([float(dist_vals[i][1]) for i in dist_vals])
@@ -87,7 +88,7 @@ except FileNotFoundError:
     
         if use_CUDA==True:
             get_gpu_memory()
-            
+    #    print(het.data)
         return torch.from_numpy(het.data)#parameter_set
     
     try:
@@ -121,15 +122,18 @@ log_probability = posterior.log_prob(samples, x=observation)
 _ = utils.pairplot(samples, limits=[[-2,2],[-2,2],[-2,2]], fig_size=(6,6))
 """
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=1.0e-23).data)
+    observation=torch.from_numpy(generate_het(H0=1.0e-23*1e25).data)
  #   print(observation.size())
  #   observation=torch.zeros(1440)
     print(observation)
-    samples = posterior.sample((200,), x=observation)#,sample_with_mcmc=True)
+    samples = posterior.sample((10000,), x=observation)#,sample_with_mcmc=True)
     print(samples)
     print("-----------------------------------------")
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
     print(log_probability)
+    
+    labels=[i for i in dist_vals]
+    _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels, points=[1.0e-23*1e25])
 print("\a")
 
 if shutdown==True:
