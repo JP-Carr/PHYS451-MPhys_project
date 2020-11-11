@@ -14,12 +14,12 @@ from multiprocessing import cpu_count
 import subprocess as sp
 import os
 
-sim_iterations=5000 #3 minimum
+sim_iterations=50000 #3 minimum
 sim_method="SNPE"   #SNPE, SNLE, SNRE
 use_CUDA=False
 observe=True
-save_posterior=False
-
+save_posterior=True
+shutdown=False
 
 def get_gpu_memory():
   _output_to_list = lambda x: x.decode('ascii').split('\n')[:-1]
@@ -121,7 +121,7 @@ log_probability = posterior.log_prob(samples, x=observation)
 _ = utils.pairplot(samples, limits=[[-2,2],[-2,2],[-2,2]], fig_size=(6,6))
 """
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=5.12e-25).data)
+    observation=torch.from_numpy(generate_het(H0=1.0e-23).data)
  #   print(observation.size())
  #   observation=torch.zeros(1440)
     print(observation)
@@ -131,3 +131,7 @@ if observe==True:
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
     print(log_probability)
 print("\a")
+
+if shutdown==True:
+    time.sleep(60)
+    os.system("shutdown") 
