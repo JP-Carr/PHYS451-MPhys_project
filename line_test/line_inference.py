@@ -1,28 +1,22 @@
 import torch
 import sbi.utils as utils
-from sbi.inference.base import infer
+
 from sbi.inference import SNPE, prepare_for_sbi, SNLE, SNRE
-import numpy as np
-import sys
+
 import time
-from bilby.core.prior import PriorDict, Uniform
-from torch.distributions.uniform import Uniform as torch_uni
-from HeterodynedData import generate_het
+
 import pickle
 from multiprocessing import cpu_count
 import subprocess as sp
 import os
+import sbi.utils as utils
 
-sim_iterations=2000 #3 minimum
+sim_iterations=10000 #3 minimum
 sim_method="SNPE"   #SNPE, SNLE, SNRE
 use_CUDA=False
 observe=True
-save_posterior=True
+save_posterior=False
 shutdown=False
-
-dist_vals={"H0*1e25": torch.tensor([0.0, 1e-22])*1e25#,    #parameter distributions [low, highs]
-             #  "phi0": [0.0, np.pi]
-               }
 
 def get_gpu_memory():
   _output_to_list = lambda x: x.decode('ascii').split('\n')[:-1]
@@ -61,7 +55,9 @@ except FileNotFoundError:
     start=time.time()
     sim_timer=[]
     
-    
+    dist_vals={"m": [-100., 100.],    #parameter distributions [low, highs]
+               "c": [-100., 100.]
+               }
     
     dist_lows=torch.tensor([float(dist_vals[i][0]) for i in dist_vals])
     dist_highs=torch.tensor([float(dist_vals[i][1]) for i in dist_vals])
@@ -69,35 +65,35 @@ except FileNotFoundError:
     prior = utils.BoxUniform(low=dist_lows, high=dist_highs)
   #  print(prior.sample())
     
-    sim_counter=-1  # 2 runs occur during setup
+ #   sim_counter=-1  # 2 runs occur during setup
+ 
+    def line(m,c=0.):
+        x=torch.arange(-100.,100.,0.1)
+        return m*x+c
+ 
     def simulator(parameter_set):   #links parameters to simulation data
-        global sim_timer, sim_counter
+      #  global sim_timer, sim_counter
+       
+     #   sim_counter+=1
+    #    startx=time.time()
         
-      #  if sim_counter>0:
-          #  sys.stdout.write("Performing Simulations: {}/{}    ".format(sim_counter,sim_iterations))
-         #   sys.stdout.flush()
-           # print("Performing Simulations: {}/{}   ".format(sim_counter,sim_iterations) , end="\r", flush=True)
-        
-        sim_counter+=1
-        startx=time.time()
-        H0=float(parameter_set)#[0])
-   #     phi0=float(parameter_set[1])
-  #      print("H_0 = "+str(H0))
-        het=generate_het(H0=H0)#,PHI0=phi0)
-        sim_timer.append(time.time()-startx)
+
+        m=float(parameter_set[0])
+        c=float(parameter_set[1])
+
+   #     sim_timer.append(time.time()-startx)
     
         if use_CUDA==True:
             get_gpu_memory()
-    #    print(het.data)
-        return torch.from_numpy(het.data)#parameter_set
+            
+        return line(m,c)#parameter_set
+    
+    
     
     try:
         threads=cpu_count()
     except:
         threads=1
- #   print(threads)
-    
-    #posterior = infer(simulator, prior, method=sim_method, num_simulations=sim_iterations, num_workers=threads)
     
     simulator, prior = prepare_for_sbi(simulator, prior) 
     
@@ -111,29 +107,24 @@ except FileNotFoundError:
     posterior = inference(num_simulations=sim_iterations, proposal=None)
 
     print("\nTraining Duration = {}s".format(round(time.time()-start,2)))
-    print("Total Simulation Time = {}s".format(round(sum(sim_timer),2)))
+#    print("Total Simulation Time = {}s".format(round(sum(sim_timer),2)))
     
     if save_posterior==True:
         pickler(posterior_path,posterior)
-"""
-observation = torch.zeros(3)
-samples = posterior.sample((10000,), x=observation)
-log_probability = posterior.log_prob(samples, x=observation)
-_ = utils.pairplot(samples, limits=[[-2,2],[-2,2],[-2,2]], fig_size=(6,6))
-"""
+
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=1.0e-23*1e25).data)
+    observation=line(15.2,32.5)
  #   print(observation.size())
  #   observation=torch.zeros(1440)
     print(observation)
     samples = posterior.sample((10000,), x=observation)#,sample_with_mcmc=True)
-    print(samples)
-    print("-----------------------------------------")
+    #print(samples)
+   # print("-----------------------------------------")
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
-    print(log_probability)
+    #print(len(log_probability))
     
     labels=[i for i in dist_vals]
-    _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels, points=[1.0e-23*1e25])
+    _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels)
 print("\a")
 
 if shutdown==True:
