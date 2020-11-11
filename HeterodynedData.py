@@ -67,6 +67,12 @@ def generate_het(H0=5.12e-25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
 if __name__=="__main__":
     x=generate_het()
     print(x.data)
+    times = np.linspace(1000000000.0, 1000086340.0, 1440)
+    plt.figure()
+    plt.plot(times,x.data)
+    plt.show()
+    
+    
 
 if __name__=="__main__" and run==True:
     
