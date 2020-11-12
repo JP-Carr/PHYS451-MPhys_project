@@ -13,15 +13,23 @@ from multiprocessing import cpu_count
 import subprocess as sp
 import os
 
-sim_iterations=2000 #3 minimum
+sim_iterations=50000 #3 minimum
 sim_method="SNPE"   #SNPE, SNLE, SNRE
 use_CUDA=False
 observe=True
 save_posterior=True
 shutdown=False
 
-dist_vals={"H0*1e25": torch.tensor([0.0, 1e-22])*1e25#,    #parameter distributions [low, highs]
-             #  "phi0": [0.0, np.pi]
+observation_parameters={"H0*1e25": 5.12e-23 *1e25,
+                        "phi0": 2.8,
+                        "cosiota": 0.3,
+                        "psi": 0.82
+                        }
+
+dist_vals={"H0*1e25": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
+               "phi0": [0., np.pi],
+               "cosiota": [-1., 1.],
+               "psi": [0., np.pi/2]
                }
 
 def get_gpu_memory():
@@ -73,22 +81,25 @@ except FileNotFoundError:
     def simulator(parameter_set):   #links parameters to simulation data
         global sim_timer, sim_counter
         
-      #  if sim_counter>0:
+       # if sim_counter>0:
           #  sys.stdout.write("Performing Simulations: {}/{}    ".format(sim_counter,sim_iterations))
          #   sys.stdout.flush()
-           # print("Performing Simulations: {}/{}   ".format(sim_counter,sim_iterations) , end="\r", flush=True)
+        #    print("Performing Simulations: {}/{}   ".format(sim_counter,sim_iterations))# , end="\r", flush=True)
         
         sim_counter+=1
         startx=time.time()
-        H0=float(parameter_set)#[0])
-   #     phi0=float(parameter_set[1])
+        h0=float(parameter_set[0])
+        phi0=float(parameter_set[1])
+        cosiota=float(parameter_set[2])
+        psi=float(parameter_set[3])
   #      print("H_0 = "+str(H0))
-        het=generate_het(H0=H0)#,PHI0=phi0)
+        het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi)
+        
         sim_timer.append(time.time()-startx)
     
         if use_CUDA==True:
             get_gpu_memory()
-    #    print(het.data)
+        #print(het.data)
         return torch.from_numpy(het.data)#parameter_set
     
     try:
@@ -111,7 +122,7 @@ except FileNotFoundError:
     posterior = inference(num_simulations=sim_iterations, proposal=None)
 
     print("\nTraining Duration = {}s".format(round(time.time()-start,2)))
-    print("Total Simulation Time = {}s".format(round(sum(sim_timer),2)))
+    #print("Total Simulation Time = {}s".format(round(sum(sim_timer),2)))
     
     if save_posterior==True:
         pickler(posterior_path,posterior)
@@ -122,18 +133,21 @@ log_probability = posterior.log_prob(samples, x=observation)
 _ = utils.pairplot(samples, limits=[[-2,2],[-2,2],[-2,2]], fig_size=(6,6))
 """
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=1.0e-23*1e25).data)
+    observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"], COSIOTA=observation_parameters["cosiota"]).data)
  #   print(observation.size())
  #   observation=torch.zeros(1440)
-    print(observation)
+   # print(observation)
     samples = posterior.sample((10000,), x=observation)#,sample_with_mcmc=True)
-    print(samples)
-    print("-----------------------------------------")
+  #  print(samples)
+   # print("-----------------------------------------")
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
-    print(log_probability)
+   # print(log_probability)
     
-    labels=[i for i in dist_vals]
-    _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels, points=[1.0e-23*1e25])
+    labels=[i for i in observation_parameters]
+    points=np.array([observation_parameters[i] for i in observation_parameters])
+   # print(points)
+    _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points)
+    
 print("\a")
 
 if shutdown==True:
