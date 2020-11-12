@@ -41,10 +41,10 @@ def generate_het(H0=5.12e-25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
         par["RAJ"] = 1.8  # give it a right ascension (in rads)
         par["DECJ"] = 0.54  # give it a declination (in rads)
         par["F"] = [567.89] # give it a frequency (in Hz)
-        par["H0"] = H0  # give it a gravitational-wave amplitude
+        par["H0"] = H0  # give it a gravitational-wave amplitude (between 0 and 1e-22)
         par["COSIOTA"] = COSIOTA  # give it a value of cos(iota) (between -1 and 1)
-        par["PSI"] = PSI  # give it a value of the polarisation angle (in rads)
-        par["PHI0"] = PHI0  # give it a value of the initial phase (in rads)
+        par["PSI"] = PSI  # give it a value of the polarisation angle (in rads) (between 0 and pi)
+        par["PHI0"] = PHI0  # give it a value of the initial phase (in rads) (between 0 and pi/2)
      #   parcontent["PEPOCH"] = 1000000000
        # print(1)
        # print(parcontent)
