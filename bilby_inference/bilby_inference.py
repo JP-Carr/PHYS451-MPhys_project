@@ -15,6 +15,9 @@ from lalinference import LALInferenceHDF5PosteriorSamplesDatasetName
 from lalinference.io import read_samples
 from matplotlib.lines import Line2D
 import pickle
+import time
+import datetime
+
 
 def pickler(path,obj):
     """
@@ -37,7 +40,7 @@ def pickler(path,obj):
     outfile.close()
     print(path+" pickled")
 
-
+start=time.time()
 
 parcontent = """\
 PSRJ     J0123+3456
@@ -63,7 +66,10 @@ asd = 1e-24  # noise amplitude spectral density
 
 
 label = "single_detector_software_injection_linear"
-outdir=""
+current_time=datetime.datetime.now()
+outdir="output/{}{}_{}{}".format(current_time.day, current_time.month, current_time.hour, current_time.minute)
+print(outdir)
+os.mkdir(outdir)
 
 parfile = os.path.join(outdir, "{}.par".format(label))
 with open(parfile, "w") as fp:
@@ -113,7 +119,7 @@ priors["cosiota"] = Uniform(
     cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$"
 )
 
-
+"""
 # run lalapps_pulsar_parameter_estimation_nested
 try:
     execpath = os.environ["CONDA_PREFIX"]
@@ -141,7 +147,7 @@ postsamples = np.zeros((lp, len(priors)))
 for i, p in enumerate(priors.keys()):
     postsamples[:, i] = post[p.upper()]
 
-
+"""
 Nlive = 1024  # number of nested sampling live points
 
 
@@ -166,7 +172,7 @@ except FileNotFoundError:
     
     result = runner.result
     
-    pickler("bilby_result.pkl", result)
+  #  pickler("bilby_result.pkl", result)
     
   
 gridpoints = 35
@@ -179,7 +185,7 @@ for p in priors.keys():
 
 
 try:    
-    infile = open("bilby_gride.pkl",'rb')       #Try to load relevent posterior 
+    infile = open("bilby_grid.pkl",'rb')       #Try to load relevent posterior 
     grid = pickle.load(infile)
     infile.close()
     print("Result Loaded")
@@ -198,13 +204,17 @@ except FileNotFoundError:
     )
     
     grid = grunner.grid
-    pickler("bilby_gride.pkl", grid)
+  #  try:
+   #     pickler("bilby_grid.pkl", grid)
+   # except:
+    #    pass
     
     
     
-    
+#comparisons(label, outdir, grid, priors, cred=0.9)
     
 fig = result.plot_corner(save=False, parameters=injection_parameters, color="b")
+"""
 fig = corner.corner(
     postsamples,
     fig=fig,
@@ -216,6 +226,9 @@ fig = corner.corner(
     fill_contours=True,
     hist_kwargs={"density": True},
 )
+"""
+
+
 axes = fig.get_axes()
 axidx = 0
 for p in priors.keys():
@@ -225,7 +238,7 @@ for p in priors.keys():
         "k--",
     )
     axidx += 5
-
+"""
 # custom legend
 legend_elements = [
     Line2D([], [], color="r", label="lalapps_pulsar_parameter_estimation_nested"),
@@ -238,5 +251,6 @@ leg = axes[3].legend(
 )
 for line in leg.get_lines():
     line.set_linewidth(1.0)
-
+"""
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
+print("\nRuntime = {}s".format(round(time.time()-start,2)))
