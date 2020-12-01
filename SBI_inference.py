@@ -71,7 +71,6 @@ def pickler(path,obj):
     pickle.dump(obj,outfile)
     outfile.close()
     print(path+" pickled")
-    print(type(obj))
     
 def simulator(parameter_set):   #links parameters to simulation data
     """
