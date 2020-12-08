@@ -119,58 +119,24 @@ priors["cosiota"] = Uniform(
     cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$"
 )
 
-"""
-# run lalapps_pulsar_parameter_estimation_nested
-try:
-    execpath = os.environ["CONDA_PREFIX"]
-except KeyError:
-    raise KeyError(
-        "Please work in a conda environment with lalsuite and cwinpy installed"
-    )
 
-execpath = os.path.join(execpath, "bin")
-
-lppen = os.path.join(execpath, "lalapps_pulsar_parameter_estimation_nested")
-outfile = os.path.join(outdir, "{}_nest.hdf".format(label))
-
-n2p = os.path.join(execpath, "lalinference_nest2pos")
-# convert nested samples to posterior samples
-outpost = os.path.join(outdir, "{}_post.hdf".format(label))
-runcmd = " ".join([n2p, "-p", outpost, outfile])
-
-
-
-# get posterior samples
-post = read_samples(outpost, tablename=LALInferenceHDF5PosteriorSamplesDatasetName)
-lp = len(post["H0"])
-postsamples = np.zeros((lp, len(priors)))
-for i, p in enumerate(priors.keys()):
-    postsamples[:, i] = post[p.upper()]
-
-"""
 Nlive = 1024  # number of nested sampling live points
 
+# run lalapps_pulsar_parameter_estimation_nested
 
-try:    
-    infile = open("bilby_result.pkl",'rb')       #Try to load relevent posterior 
-    result = pickle.load(infile)
-    infile.close()
-    print("Result Loaded")
+runner = pe(
+    data_file=hetfile,
+    par_file=parfile,
+    prior=priors,
+    detector=detector,
+    sampler="nestle",
+    sampler_kwargs={"Nlive": Nlive, "walks": 40},
+    outdir=outdir,
+    label=label,
+)
 
-except FileNotFoundError:
-
-    runner = pe(
-        data_file=hetfile,
-        par_file=parfile,
-        prior=priors,
-        detector=detector,
-        sampler="nestle",
-        sampler_kwargs={"Nlive": Nlive, "walks": 40},
-        outdir=outdir,
-        label=label,
-    )
-    
-    result = runner.result
+result = runner.result
+print(result)
     
   #  pickler("bilby_result.pkl", result)
     
@@ -184,30 +150,24 @@ for p in priors.keys():
 
 
 
-try:    
-    infile = open("bilby_grid.pkl",'rb')       #Try to load relevent posterior 
-    grid = pickle.load(infile)
-    infile.close()
-    print("Result Loaded")
-
-except FileNotFoundError:
-
-    grunner = pe(
-        data_file=hetfile,
-        par_file=parfile,
-        prior=priors,
-        detector=detector,
-        outdir=outdir,
-        label=label,
-        grid=True,
-        grid_kwargs={"grid_size": grid_size},
-    )
-    
-    grid = grunner.grid
-  #  try:
-   #     pickler("bilby_grid.pkl", grid)
-   # except:
-    #    pass
+grunner = pe(
+      data_file=hetfile,
+      par_file=parfile,
+      prior=priors,
+      detector=detector,
+      outdir=outdir,
+      label=label,
+      grid=True,
+      grid_kwargs={"grid_size": grid_size},
+  )
+  
+grid = grunner.grid
+print("------------")
+#print(grid)
+#  try:
+ #     pickler("bilby_grid.pkl", grid)
+ # except:
+  #    pass
     
     
     
@@ -254,3 +214,17 @@ for line in leg.get_lines():
 """
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
+
+from new_comparison import comparisons
+
+posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior50000_SNPE.pkl"
+infile = open(posterior_path,'rb')       #Try to load relevent posterior 
+posterior = pickle.load(infile)
+infile.close()
+print("Prior Loaded - "+posterior_path)
+
+
+
+
+
+print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
