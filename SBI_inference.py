@@ -11,10 +11,10 @@ import os
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=10  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=50000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training?
-observe=False        # Perform parameter estimation on test GW?
+observe=True        # Perform parameter estimation on test GW?
 save_posterior=False  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
@@ -154,8 +154,12 @@ except FileNotFoundError:
 
 
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"], COSIOTA=observation_parameters["cosiota"]).data)
+    observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
     samples = posterior.sample((10000,), x=observation)
+    
+    print(samples)
+   # print(samples[:,0])
+    
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
 
     labels=[i for i in observation_parameters]
