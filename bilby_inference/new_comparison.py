@@ -32,64 +32,25 @@ def comparisons(label, outdir, grid, priors, NN_posterior, injection_parameters,
     """
 
      
- 
-
-
-    observation=torch.from_numpy(generate_het(H0=injection_parameters["h0"], PHI0=injection_parameters["phi0"], PSI=injection_parameters["psi"], COSIOTA=injection_parameters["cosiota"]).data)
-    post = NN_posterior.sample((10000,), x=observation)
-    
-    """    
-    lppenfile = os.path.join(outdir, "{}_post.hdf".format(label))
-
-    # get posterior samples
-    post = read_samples(
-        lppenfile, tablename=LALInferenceHDF5PosteriorSamplesDatasetName
-    )
-
-    # get uncertainty on ln(evidence)
-    info = h5py.File(lppenfile)["lalinference"]["lalinference_nest"].attrs[
-        "information_nats"
-    ]
-    nlive = h5py.File(lppenfile)["lalinference"]["lalinference_nest"].attrs[
-        "number_live_points"
-    ]
-    evsig = h5py.File(lppenfile)["lalinference"]["lalinference_nest"].attrs[
-        "log_evidence"
-    ]
-    evnoise = h5py.File(lppenfile)["lalinference"]["lalinference_nest"].attrs[
-        "log_noise_evidence"
-    ]
-    """
-    
-   # everr = np.sqrt(info / nlive)  # the uncertainty on the evidence
-
-    # read in cwinpy results
     result = read_in_result(outdir=outdir, label=label)
 
-    # comparison file
-  #  comparefile = os.path.join(outdir, "{}_compare.txt".format(label))
 
-    # get grid-based evidence
-   # if grid is not None:
-    #    grid_evidence = grid.log_evidence
+    for p in priors.keys():
+        samples=len(result.posterior[p])
+        break
 
+  #  samples=len(result.posterior["h0"][:,1])
+    print(samples)
+    observation=torch.from_numpy(generate_het(H0=injection_parameters["h0"], PHI0=injection_parameters["phi0"], PSI=injection_parameters["psi"], COSIOTA=injection_parameters["cosiota"]).data)
+    post = NN_posterior.sample((samples,), x=observation)
+    
 
-
-    # calculate the Kolmogorov-Smirnov test for each 1d marginalised distribution,
-    # and the Jensen-Shannon divergence, from the two codes. Output the
-    # combined p-value of the KS test statistic over all parameters, and the
-    # maximum Jensen-Shannon divergence over all parameters.
-  #  values[idx] = np.inf
     pvalues = []
     jsvalues = []
     for p in priors.keys():
-        
-        #print(p)
-        print(p.upper())
-     #   print(post[p.upper()])
-        
+
         psample=post[:, parameter_conversion.index(p.upper())].numpy()
-       # print(psample)
+        print(len(psample), len(result.posterior[p]))
         _, pvalue = ks_2samp(psample, result.posterior[p])
         pvalues.append(pvalue)
 
