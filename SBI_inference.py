@@ -13,15 +13,15 @@ import os
 
 sim_iterations=50000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
-use_CUDA=False       # Utilise GPU during training?
+use_CUDA=False       # Utilise GPU during training - not recommended
 observe=True        # Perform parameter estimation on test GW?
-save_posterior=False  # Save generated posterior?
+save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={"H0*1e25": 5.12e-23 *1e25,   # paramters for test GW
-                        "phi0": 2.8,
-                        "cosiota": 0.3,
-                        "psi": 0.82
+observation_parameters={"H0*1e25": 20.1,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+                        "phi0": 0.9,#2.8,
+                        "cosiota": -0.3,#0.3,
+                        "psi": 0.46#0.82
                         }
 
 dist_vals={"H0*1e25": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
@@ -87,12 +87,13 @@ def simulator(parameter_set):   #links parameters to simulation data
         Complex time series of heterodyned data
 
     """
-    print(type(parameter_set))
+   # print(type(parameter_set))
     
     h0=float(parameter_set[0])
     phi0=float(parameter_set[1])
     cosiota=float(parameter_set[2])
     psi=float(parameter_set[3])
+    print(h0,phi0,cosiota,psi)
     het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi)
 
     if use_CUDA==True:
@@ -150,15 +151,12 @@ except FileNotFoundError:
     print("\nTraining Duration = {}s".format(round(time.time()-start,2)))
     
     if save_posterior==True:
-        pickler(posterior_path,posterior)
+            pickler(posterior_path,posterior)
 
 
 if observe==True:
     observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
-    samples = posterior.sample((10000,), x=observation)
-    
-    print(samples)
-   # print(samples[:,0])
+    samples = posterior.sample((500000,), x=observation)
     
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
 
