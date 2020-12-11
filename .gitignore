@@ -131,3 +131,5 @@ dmypy.json
 # User added
 *.par
 sbi-logs/
+Examples/outputs/
+bilby_inference/output
