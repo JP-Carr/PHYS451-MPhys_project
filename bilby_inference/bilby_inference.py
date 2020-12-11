@@ -8,7 +8,6 @@ import matplotlib.font_manager as font_manager
 import numpy as np
 from astropy.utils.data import download_file
 from bilby.core.prior import Uniform
-from comparitors import comparisons
 from cwinpy import HeterodynedData
 from cwinpy.pe import pe
 from lalinference import LALInferenceHDF5PosteriorSamplesDatasetName
@@ -17,6 +16,7 @@ from matplotlib.lines import Line2D
 import pickle
 import time
 import datetime
+from new_comparison import comparisons
 
 
 def pickler(path,obj):
@@ -135,10 +135,7 @@ runner = pe(
     label=label,
 )
 
-result = runner.result
-print(result)
-    
-  #  pickler("bilby_result.pkl", result)
+result = runner.result    
     
   
 gridpoints = 35
@@ -162,16 +159,9 @@ grunner = pe(
   )
   
 grid = grunner.grid
-print("------------")
-#print(grid)
-#  try:
- #     pickler("bilby_grid.pkl", grid)
- # except:
-  #    pass
+   
     
-    
-    
-#comparisons(label, outdir, grid, priors, cred=0.9)
+
     
 fig = result.plot_corner(save=False, parameters=injection_parameters, color="b")
 """
@@ -198,33 +188,17 @@ for p in priors.keys():
         "k--",
     )
     axidx += 5
-"""
-# custom legend
-legend_elements = [
-    Line2D([], [], color="r", label="lalapps_pulsar_parameter_estimation_nested"),
-    Line2D([], [], color="b", label="cwinpy_pe"),
-    Line2D([], [], color="k", ls="--", label="cwinpy_pe (grid)"),
-]
-font = font_manager.FontProperties(family="monospace")
-leg = axes[3].legend(
-    handles=legend_elements, loc="upper right", frameon=False, prop=font, handlelength=3
-)
-for line in leg.get_lines():
-    line.set_linewidth(1.0)
-"""
+
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
-from new_comparison import comparisons
+
 
 posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior50000_SNPE.pkl"
 infile = open(posterior_path,'rb')       #Try to load relevent posterior 
 posterior = pickle.load(infile)
 infile.close()
 print("Prior Loaded - "+posterior_path)
-
-
-
 
 
 print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
