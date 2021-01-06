@@ -56,10 +56,10 @@ PHI0     2.4
 """
 
 injection_parameters = OrderedDict()
-injection_parameters["h0"] = 1.1e-25
+#injection_parameters["h0"] = 1.1e-25
 injection_parameters["phi0"] = 2.4
 injection_parameters["psi"] = 1.1
-injection_parameters["cosiota"] = 0.01
+#injection_parameters["cosiota"] = 0.01
 
 detector = "H1"  # the detector to use
 asd = 1e-24  # noise amplitude spectral density
@@ -93,8 +93,8 @@ het.write(hetfile)
 
 phi0range = [0.0, np.pi]
 psirange = [0.0, np.pi / 2.0]
-cosiotarange = [-1.0, 1.0]
-h0range = [0.0, 1e-23]
+#cosiotarange = [-1.0, 1.0]
+#h0range = [0.0, 1e-23]
 
 # set prior for lalapps_pulsar_parameter_estimation_nested
 priorfile = os.path.join(outdir, "{}_prior.txt".format(label))
@@ -103,21 +103,28 @@ PHI0 uniform {} {}
 PSI uniform {} {}
 COSIOTA uniform {} {}
 """
+
+priorcontent = """
+PHI0 uniform {} {}
+PSI uniform {} {}
+
+"""
+
 with open(priorfile, "w") as fp:
-    fp.write(priorcontent.format(*(h0range + phi0range + psirange + cosiotarange)))
+    fp.write(priorcontent.format(*(phi0range + psirange)))
 
 # set prior for bilby
 priors = OrderedDict()
-priors["h0"] = Uniform(h0range[0], h0range[1], "h0", latex_label=r"$h_0$")
+#priors["h0"] = Uniform(h0range[0], h0range[1], "h0", latex_label=r"$h_0$")
 priors["phi0"] = Uniform(
     phi0range[0], phi0range[1], "phi0", latex_label=r"$\phi_0$", unit="rad"
 )
 priors["psi"] = Uniform(
     psirange[0], psirange[1], "psi", latex_label=r"$\psi$", unit="rad"
 )
-priors["cosiota"] = Uniform(
-    cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$"
-)
+#priors["cosiota"] = Uniform(
+    #cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$"
+#)
 
 
 Nlive = 1024  # number of nested sampling live points
@@ -181,7 +188,10 @@ fig = corner.corner(
 
 axes = fig.get_axes()
 axidx = 0
+print(priors.keys())
+print(axes)
 for p in priors.keys():
+#    print(p)
     axes[axidx].plot(
         grid.sample_points[p],
         np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence),
@@ -192,7 +202,7 @@ for p in priors.keys():
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
-
+"""
 
 posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior50000_SNPE.pkl"
 infile = open(posterior_path,'rb')       #Try to load relevent posterior 
@@ -202,3 +212,4 @@ print("Prior Loaded - "+posterior_path)
 
 
 print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
+"""

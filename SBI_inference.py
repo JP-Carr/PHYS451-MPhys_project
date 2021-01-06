@@ -8,6 +8,7 @@ import pickle
 from multiprocessing import cpu_count
 import subprocess as sp
 import os
+from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
@@ -18,14 +19,14 @@ observe=True        # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={"H0*1e25": 20.1,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
-                        "phi0": 0.9,#2.8,
-                        "cosiota": -0.3,#0.3,
-                        "psi": 0.46#0.82
+observation_parameters={#"H0*1e25": 20.1,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+                      #  "phi0": 3.01,#2.8,
+                        "cosiota": -0.3,
+                        "psi": 0.1#0.82
                         }
 
-dist_vals={"H0*1e25": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
-               "phi0": [0., np.pi],
+dist_vals={#"H0*1e25": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
+            #   "phi0": [0., np.pi],
                "cosiota": [-1., 1.],
                "psi": [0., np.pi/2]
                }
@@ -87,14 +88,15 @@ def simulator(parameter_set):   #links parameters to simulation data
         Complex time series of heterodyned data
 
     """
-   # print(type(parameter_set))
-    
-    h0=float(parameter_set[0])
-    phi0=float(parameter_set[1])
-    cosiota=float(parameter_set[2])
-    psi=float(parameter_set[3])
-    print(h0,phi0,cosiota,psi)
-    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi)
+   # print(parameter_set)
+
+   # h0=float(parameter_set[0])
+   # phi0=float(parameter_set[1])
+    cosiota=float(parameter_set[0])
+    psi=float(parameter_set[1])
+    #print(h0,phi0,cosiota,psi)
+    #het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi)
+    het=generate_het(PSI=psi, COSIOTA=cosiota)
 
     if use_CUDA==True:
         get_gpu_memory()
@@ -117,7 +119,8 @@ except:
     threads=1
 
 
-posterior_path="posteriors/posterior{}_{}.pkl".format(sim_iterations,inf_method) # Posterior save location
+#posterior_path="posteriors/posterior{}_{}.pkl".format(sim_iterations,inf_method) # Posterior save location
+posterior_path="posteriors/test/posterior{}_{}.pkl".format(sim_iterations,inf_method) # Posterior save location
 
 try:    
     infile = open(posterior_path,'rb')       #Try to load relevent posterior 
@@ -155,7 +158,8 @@ except FileNotFoundError:
 
 
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
+    #observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
+    observation=torch.from_numpy(generate_het(PSI=observation_parameters["psi"], COSIOTA=observation_parameters["cosiota"]).data)
     samples = posterior.sample((500000,), x=observation)
     
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
@@ -164,7 +168,7 @@ if observe==True:
     points=np.array([observation_parameters[i] for i in observation_parameters])
 
     _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points)  # plot results
-    
+    plt.show()
 print("\a")
 
 if shutdown==True:
