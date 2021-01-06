@@ -187,17 +187,21 @@ fig = corner.corner(
 
 
 axes = fig.get_axes()
+print(len(axes))
 axidx = 0
-print(priors.keys())
-print(axes)
+print("------------------")
+print(grid.sample_points["psi"])
+print("------------------")
 for p in priors.keys():
-#    print(p)
+    print(type(p))
     axes[axidx].plot(
         grid.sample_points[p],
         np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence),
         "k--",
     )
     axidx += 5
+    if p=="psi":
+        break
 
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
