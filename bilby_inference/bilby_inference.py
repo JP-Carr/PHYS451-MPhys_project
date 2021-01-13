@@ -7,7 +7,7 @@ import h5py
 import matplotlib.font_manager as font_manager
 import numpy as np
 from astropy.utils.data import download_file
-from bilby.core.prior import Uniform
+from bilby.core.prior import Uniform, DeltaFunction
 from cwinpy import HeterodynedData
 from cwinpy.pe import pe
 from lalinference import LALInferenceHDF5PosteriorSamplesDatasetName
@@ -54,11 +54,11 @@ COSIOTA  0.01
 PSI      1.1
 PHI0     2.4
 """
-
+#H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4
 injection_parameters = OrderedDict()
 #injection_parameters["h0"] = 1.1e-25
-injection_parameters["phi0"] = 2.4
-injection_parameters["psi"] = 1.1
+injection_parameters["phi0"] = 0.9
+injection_parameters["psi"] = 0.4
 #injection_parameters["cosiota"] = 0.01
 
 detector = "H1"  # the detector to use
@@ -115,17 +115,10 @@ with open(priorfile, "w") as fp:
 
 # set prior for bilby
 priors = OrderedDict()
-#priors["h0"] = Uniform(h0range[0], h0range[1], "h0", latex_label=r"$h_0$")
-priors["phi0"] = Uniform(
-    phi0range[0], phi0range[1], "phi0", latex_label=r"$\phi_0$", unit="rad"
-)
-priors["psi"] = Uniform(
-    psirange[0], psirange[1], "psi", latex_label=r"$\psi$", unit="rad"
-)
-#priors["cosiota"] = Uniform(
-    #cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$"
-#)
-
+priors["h0"] = DeltaFunction(1.1e-25, name="h0", latex_label=r"$h_0$")
+priors["phi0"] = Uniform(phi0range[0], phi0range[1], "phi0", latex_label=r"$\phi_0$", unit="rad")
+priors["psi"] = Uniform(psirange[0], psirange[1], "psi", latex_label=r"$\psi$", unit="rad")
+priors["cosiota"] = DeltaFunction(0.01, name="cosiota", latex_label=r"$\cos{\iota}$")
 
 Nlive = 1024  # number of nested sampling live points
 
@@ -152,7 +145,8 @@ for p in priors.keys():
         np.min(result.posterior[p]), np.max(result.posterior[p]), gridpoints
     )
 
-
+del priors["h0"]
+del priors["cosiota"]
 
 grunner = pe(
       data_file=hetfile,
@@ -200,6 +194,7 @@ for p in priors.keys():
         "k--",
     )
     axidx += 5
+    break
     if p=="psi":
         break
 
