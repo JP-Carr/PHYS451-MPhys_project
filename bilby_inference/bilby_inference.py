@@ -57,8 +57,8 @@ PHI0     2.4
 #H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4
 injection_parameters = OrderedDict()
 #injection_parameters["h0"] = 1.1e-25
-injection_parameters["phi0"] = 0.9
-injection_parameters["psi"] = 0.4
+injection_parameters["phi0"] = 2.4
+injection_parameters["psi"] = 1.1
 #injection_parameters["cosiota"] = 0.01
 
 detector = "H1"  # the detector to use
