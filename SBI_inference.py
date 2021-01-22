@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=500  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=100  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 observe=True        # Perform parameter estimation on test GW?
@@ -167,15 +167,18 @@ except FileNotFoundError:
 
 if observe==True:
     #observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
-    observation=torch.from_numpy(generate_het(PSI=observation_parameters["psi"], PHI0=observation_parameters["phi0"]).data)
+    ob_het=generate_het(PSI=observation_parameters["psi"], PHI0=observation_parameters["phi0"]).data
+    observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
+   # print(len(observation))
     samples = posterior.sample((500000,), x=observation)
-    
+    print(0)
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
-
+    print(1)
     labels=[i for i in observation_parameters]
     points=np.array([observation_parameters[i] for i in observation_parameters])
 
     _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points)  # plot results
+    print(2)
     plt.show()
 print("\a")
 
