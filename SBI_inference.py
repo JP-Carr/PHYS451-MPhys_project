@@ -8,26 +8,27 @@ import pickle
 from multiprocessing import cpu_count
 import subprocess as sp
 import os
+from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=50000  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=500  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 observe=True        # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={"H0*1e25": 20.1,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
-                        "phi0": 0.9,#2.8,
-                        "cosiota": -0.3,#0.3,
-                        "psi": 0.46#0.82
+observation_parameters={r"$H_0\times 10^{23}$": 5.12e-23 *1e25,   # paramters for test GW (must be floats)
+                        r"$\phi_0$": 2.8,
+                        r"$cos(\iota)$": 0.3,
+                        r"$\psi$": 0.82
                         }
 
-dist_vals={"H0*1e25": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
-               "phi0": [0., np.pi],
-               "cosiota": [-1., 1.],
-               "psi": [0., np.pi/2]
+dist_vals={r"$H_0\times 10^{23}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
+               r"$\phi_0$": [0., np.pi],
+               r"$cos(\iota)$": [-1., 1.],
+               r"$\psi$": [0., np.pi/2]
                }
 
 #FUNCTIONS---------------------------------------------------------------------
@@ -93,13 +94,16 @@ def simulator(parameter_set):   #links parameters to simulation data
     phi0=float(parameter_set[1])
     cosiota=float(parameter_set[2])
     psi=float(parameter_set[3])
-    print(h0,phi0,cosiota,psi)
-    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi)
+  #  print(h0,phi0,cosiota,psi)
+    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi).data
 
     if use_CUDA==True:
         get_gpu_memory()
         
-    het_data=torch.from_numpy(het.data)#parameter_set
+    r=het.real    
+    i=het.imag    
+    c=np.concatenate((r,i))
+    het_data=torch.from_numpy(c)#parameter_set
     return het_data
     
 #SCRIPT------------------------------------------------------------------------    
@@ -155,8 +159,9 @@ except FileNotFoundError:
 
 
 if observe==True:
-    observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
-    samples = posterior.sample((500000,), x=observation)
+    ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{23}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"]).data
+    observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
+    samples = posterior.sample((50000,), x=observation)
     
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
 
@@ -164,9 +169,11 @@ if observe==True:
     points=np.array([observation_parameters[i] for i in observation_parameters])
 
     _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points)  # plot results
+    print("\a")
+    plt.show()
+else:
+    print("\a")
     
-print("\a")
-
 if shutdown==True:
     time.sleep(60)
     os.system("shutdown") 
