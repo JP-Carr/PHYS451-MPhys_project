@@ -54,7 +54,9 @@ def generate_het(H0=1.1e-25*1e25,COSIOTA=0.01,PSI=1.1,PHI0=2.4):
     detector = "H1"  
    # print(2)
     times = np.linspace(1000000000.0, 1000086340.0, 1440)
-    times=np.concatenate((times,times))
+   # times = np.linspace(1000000000.0, 1000172680.0, 2880, dtype=("int32"))
+  #  print(times)
+  #  times=np.concatenate((times,times))
     het = HeterodynedData(
         times=times,
         inject=True,
