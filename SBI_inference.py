@@ -12,22 +12,22 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=50000  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=500  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 observe=True        # Perform parameter estimation on test GW?
-save_posterior=True  # Save generated posterior?
+save_posterior=False  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
 observation_parameters={#"H0*1e25": 20.1,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
-                      #  "phi0": 3.01,#2.8,
-                        "cosiota": -0.3,
-                        "psi": 0.1#0.82
+                        "phi0": 2.4,#2.8,
+                      #  "cosiota": -0.3,
+                        "psi": 1.1#0.82
                         }
 
 dist_vals={#"H0*1e25": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
-            #   "phi0": [0., np.pi],
-               "cosiota": [-1., 1.],
+               "phi0": [0., np.pi],
+             #  "cosiota": [-1., 1.],
                "psi": [0., np.pi/2]
                }
 
@@ -91,17 +91,25 @@ def simulator(parameter_set):   #links parameters to simulation data
    # print(parameter_set)
 
    # h0=float(parameter_set[0])
-   # phi0=float(parameter_set[1])
-    cosiota=float(parameter_set[0])
+    phi0=float(parameter_set[0])
+    #cosiota=float(parameter_set[0])
     psi=float(parameter_set[1])
     #print(h0,phi0,cosiota,psi)
     #het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi)
-    het=generate_het(PSI=psi, COSIOTA=cosiota)
+    het=generate_het(PSI=psi, PHI0=phi0)
 
     if use_CUDA==True:
         get_gpu_memory()
-        
-    het_data=torch.from_numpy(het.data)#parameter_set
+    #print(het.data.real, het.data.imag)    
+    r=het.data.real
+    i=het.data.imag
+    c=np.concatenate((r, i))
+  #  c=np.array([r[x],i[x]] for x in range(len(r)))
+  #  print(c)
+   # x=1/0
+    het_data=torch.from_numpy(c)
+    #het_data=torch.from_numpy(het.data)#parameter_set
+  #  print(het_data)
     return het_data
     
 #SCRIPT------------------------------------------------------------------------    
@@ -159,7 +167,7 @@ except FileNotFoundError:
 
 if observe==True:
     #observation=torch.from_numpy(generate_het(H0=observation_parameters["H0*1e25"], PHI0=observation_parameters["phi0"],PSI=observation_parameters["psi"] , COSIOTA=observation_parameters["cosiota"]).data)
-    observation=torch.from_numpy(generate_het(PSI=observation_parameters["psi"], COSIOTA=observation_parameters["cosiota"]).data)
+    observation=torch.from_numpy(generate_het(PSI=observation_parameters["psi"], PHI0=observation_parameters["phi0"]).data)
     samples = posterior.sample((500000,), x=observation)
     
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
