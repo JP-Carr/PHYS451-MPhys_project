@@ -14,7 +14,8 @@ def gen_phi0(psi):
     out=[]
     for j in phi0[0]:
         print(psi[0],j)
-        out.append(np.mean(np.absolute(origin-generate_het(PHI0=j, PSI=psi[0]).data.imag)))
+        het=generate_het(PHI0=j, PSI=psi[0]).data
+        out.append(np.mean(np.absolute(origin-np.concatenate((het.real,het.imag)))))
     #    x=1/0
     return [psi[0],np.array(out)]
 
@@ -53,10 +54,11 @@ def make_het(psi, phi0):
 if __name__ == "__main__":
     start=time.time() #starts timing
     # Make data.
-    origin=generate_het(PHI0=2.4, PSI=1.1).data.imag
+    origin=generate_het(PHI0=2.4, PSI=1.1).data
+    origin=np.concatenate((origin.real,origin.imag))
     #y=generate_het(PSI=0.82, PHI0=0.74).data
     
-    step=0.1/4
+    step=0.1
     phi0= np.arange(0., np.pi, step)
     psi= np.arange(0., np.pi/2, step/2)
     phi0, psi = np.meshgrid(phi0,psi) 
