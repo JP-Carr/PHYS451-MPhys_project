@@ -8,8 +8,10 @@ from lalpulsar.PulsarParametersWrapper import PulsarParametersPy
 
 run=False
 
-def generate_het(H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
-    
+def generate_het(H0=1.1e-25*1e25,COSIOTA=0.01,PSI=1.1,PHI0=2.4):
+  #  print(PSI)
+   # print("----------")
+    #print(PHI0)
     use_parfile=False
     
     parname="J0123+3456"
@@ -52,6 +54,7 @@ def generate_het(H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
     detector = "H1"  
    # print(2)
     times = np.linspace(1000000000.0, 1000086340.0, 1440)
+    times=np.concatenate((times,times))
     het = HeterodynedData(
         times=times,
         inject=True,
@@ -64,7 +67,9 @@ def generate_het(H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
   #  print(3)
     return het
 
-if __name__=="__main__":
+
+
+if __name__=="__main__" and 1==2:
     x=generate_het()
     print(x.data)
     times = np.linspace(1000000000.0, 1000086340.0, 1440)
@@ -96,8 +101,8 @@ if __name__=="__main__" and run==True:
         
     # create some fake heterodyned data
     detector = "H1"  # the detector to use
-    #times = np.linspace(1000000000.0, 1000086340.0, 1440)  # times
-    times = np.linspace(1000000000.0, 1000086340.0, 1440)
+    times = np.linspace(1000000000.0, 1000086340.0, 1440)  # times
+    times=np.concatenate((times,times))
     het = HeterodynedData(
         times=times,
         inject=True,
@@ -118,3 +123,14 @@ if __name__=="__main__" and run==True:
     print(type(priordic))
    # pkl.dump("")
     """
+
+if __name__=="__main__":
+    print("--------------------")
+    x=generate_het(PHI0=2.4, PSI=1.1).data
+    y=generate_het(PSI=0.82, PHI0=0.74).data
+    #y=generate_het(PSI=0.66, PHI0=0.5).data
+  #  print(np.mean(x-y))
+   # print(x.real)
+    z=np.concatenate((x.real, x.imag ))
+    import torch
+    print(torch.from_numpy(z))
