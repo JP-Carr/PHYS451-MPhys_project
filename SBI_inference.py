@@ -12,20 +12,20 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=500  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=50000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 observe=True        # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={r"$H_0\times 10^{23}$": 5.12e-23 *1e25,   # paramters for test GW (must be floats)
+observation_parameters={r"$H_0\times 10^{25}$": 5.12e-23 *1e25,   # paramters for test GW (must be floats)
                         r"$\phi_0$": 2.8,
                         r"$cos(\iota)$": 0.3,
                         r"$\psi$": 0.82
                         }
 
-dist_vals={r"$H_0\times 10^{23}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
+dist_vals={r"$H_0\times 10^{25}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
                r"$\phi_0$": [0., np.pi],
                r"$cos(\iota)$": [-1., 1.],
                r"$\psi$": [0., np.pi/2]
@@ -159,7 +159,7 @@ except FileNotFoundError:
 
 
 if observe==True:
-    ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{23}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"]).data
+    ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{25}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"]).data
     observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
     samples = posterior.sample((50000,), x=observation)
     
