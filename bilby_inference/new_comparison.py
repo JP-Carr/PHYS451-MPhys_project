@@ -13,12 +13,6 @@ from HeterodynedData import generate_het
 
 parameter_conversion=["H0", "PHI0", "PSI", "COSIOTA"]
 
-#observation_parameters={"H0*1e25": 5.12e-23 *1e25,   # paramters for test GW
- #                       "phi0": 2.8,
-  #                      "cosiota": 0.3,
-   #                     "psi": 0.82
-    #                    }
-
 
 def credible_interval(samples, ci=0.90):
     # get the given percentage credible interval about the median
@@ -40,8 +34,10 @@ def comparisons(label, outdir, grid, priors, NN_posterior, injection_parameters,
         break
 
   #  samples=len(result.posterior["h0"][:,1])
-    print(samples)
-    observation=torch.from_numpy(generate_het(H0=injection_parameters["h0"], PHI0=injection_parameters["phi0"], PSI=injection_parameters["psi"], COSIOTA=injection_parameters["cosiota"]).data)
+  #  print(samples)
+    ob_het=generate_het(H0=injection_parameters["h0"], PHI0=injection_parameters["phi0"],PSI=injection_parameters["psi"] , COSIOTA=injection_parameters["cosiota"]).data
+    observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
+  #  observation=torch.from_numpy(generate_het(H0=injection_parameters["h0"], PHI0=injection_parameters["phi0"], PSI=injection_parameters["psi"], COSIOTA=injection_parameters["cosiota"]).data)
     post = NN_posterior.sample((samples,), x=observation)
     
 
@@ -50,7 +46,7 @@ def comparisons(label, outdir, grid, priors, NN_posterior, injection_parameters,
     for p in priors.keys():
 
         psample=post[:, parameter_conversion.index(p.upper())].numpy()
-        print(len(psample), len(result.posterior[p]))
+      #  print(len(psample), len(result.posterior[p]))
         _, pvalue = ks_2samp(psample, result.posterior[p])
         pvalues.append(pvalue)
 
