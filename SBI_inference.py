@@ -12,17 +12,17 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=50000  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=70000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 observe=True        # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={r"$H_0\times 10^{25}$": 5.12e-23 *1e25,   # paramters for test GW (must be floats)
-                        r"$\phi_0$": 2.8,
-                        r"$cos(\iota)$": 0.3,
-                        r"$\psi$": 0.82
+observation_parameters={r"$H_0\times 10^{25}$": 2.51e-23 *1e25,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+                        r"$\phi_0$": 2.2,#2.8,
+                        r"$cos(\iota)$": 0.62,#0.3,
+                        r"$\psi$": 1.11#0.82
                         }
 
 dist_vals={r"$H_0\times 10^{25}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
@@ -30,6 +30,8 @@ dist_vals={r"$H_0\times 10^{25}$": torch.tensor([0., 1e-22]) *1e25,    #paramete
                r"$cos(\iota)$": [-1., 1.],
                r"$\psi$": [0., np.pi/2]
                }
+
+SNR=5
 
 #FUNCTIONS---------------------------------------------------------------------
 
@@ -95,7 +97,7 @@ def simulator(parameter_set):   #links parameters to simulation data
     cosiota=float(parameter_set[2])
     psi=float(parameter_set[3])
   #  print(h0,phi0,cosiota,psi)
-    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi).data
+    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi, fakeasd=5.12e-23 *1e25/SNR).data
 
     if use_CUDA==True:
         get_gpu_memory()
@@ -159,16 +161,27 @@ except FileNotFoundError:
 
 
 if observe==True:
-    ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{25}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"]).data
+    print(observation_parameters[r"$H_0\times 10^{25}$"]/5)
+    ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{25}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"],  fakeasd=observation_parameters[r"$H_0\times 10^{25}$"]/SNR).data
     observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
     samples = posterior.sample((50000,), x=observation)
-    
+  #  print(samples[:,0])
     log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
 
-    labels=[i for i in observation_parameters]
-    points=np.array([observation_parameters[i] for i in observation_parameters])
+    percent90=np.percentile(samples, 90,axis=0)
+    percent10=np.percentile(samples, 10,axis=0)
+    one_sigma=np.percentile(samples, 68,axis=0)
+    minus_one_sigma=np.percentile(samples, 100-68,axis=0)
+    
 
-    _ = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points)  # plot results
+    labels=[i for i in observation_parameters]
+   # points=np.array([observation_parameters[i] for i in observation_parameters])
+    points=[[observation_parameters[i] for i in observation_parameters],[j for j in percent90],[k for k in percent10]]
+    #points=[[observation_parameters[i] for i in observation_parameters],[j for j in one_sigma],[k for k in minus_one_sigma]]
+    print(points)
+
+    colours=['#1f77b4', '#ff7f0e', '#ff7f0e']
+    plot = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points, points_colors=colours)  # plot results
     print("\a")
     plt.show()
 else:
