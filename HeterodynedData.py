@@ -8,7 +8,7 @@ from lalpulsar.PulsarParametersWrapper import PulsarParametersPy
 
 run=False
 
-def generate_het(H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
+def generate_het(H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4, fakeasd=1e-24):
     
     use_parfile=False
     
@@ -57,7 +57,7 @@ def generate_het(H0=5.12e-25*1e25,COSIOTA=0.3,PSI=1.1,PHI0=2.4):
         inject=True,
         par=par,
         injpar=par,
-        fakeasd=1e-24,
+        fakeasd=fakeasd,
         detector=detector,
         bbminlength=1e10000
     )
