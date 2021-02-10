@@ -166,21 +166,19 @@ if observe==True:
     observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
     samples = posterior.sample((50000,), x=observation)
   #  print(samples[:,0])
-    log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
+ #   log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
 
-    percent90=np.percentile(samples, 90,axis=0)
-    percent10=np.percentile(samples, 10,axis=0)
+    two_sigma=np.percentile(samples, 95,axis=0)
+    minus_two_sigma=np.percentile(samples, 100-95,axis=0)
     one_sigma=np.percentile(samples, 68,axis=0)
     minus_one_sigma=np.percentile(samples, 100-68,axis=0)
     
 
     labels=[i for i in observation_parameters]
-   # points=np.array([observation_parameters[i] for i in observation_parameters])
-    points=[[observation_parameters[i] for i in observation_parameters],[j for j in percent90],[k for k in percent10]]
-    #points=[[observation_parameters[i] for i in observation_parameters],[j for j in one_sigma],[k for k in minus_one_sigma]]
-    print(points)
+    points=[[j for j in one_sigma],[k for k in minus_one_sigma],[l for l in two_sigma],[n for n in minus_two_sigma],[observation_parameters[i] for i in observation_parameters]]
+   # print(points)
 
-    colours=['#1f77b4', '#ff7f0e', '#ff7f0e']
+    colours=['#ff7f0e', '#ff7f0e',"#FF0000","#FF0000",'#1f77b4']
     plot = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points, points_colors=colours)  # plot results
     print("\a")
     plt.show()
