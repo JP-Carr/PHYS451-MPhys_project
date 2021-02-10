@@ -1,7 +1,7 @@
 import os
 import subprocess as sp
 from collections import OrderedDict
-
+import torch
 import corner
 import h5py
 import matplotlib.font_manager as font_manager
@@ -17,7 +17,8 @@ import pickle
 import time
 import datetime
 from new_comparison import comparisons
-
+from HeterodynedData import generate_het
+from zplib.scalar_stats.compare_distributions import  js_metric
 
 def pickler(path,obj):
     """
@@ -56,10 +57,10 @@ PHI0     2.4
 """
 
 injection_parameters = OrderedDict()
-injection_parameters["h0"] = 1.1e-25
-injection_parameters["phi0"] = 2.4
-injection_parameters["psi"] = 1.1
-injection_parameters["cosiota"] = 0.01
+injection_parameters["h0"] = 5.12e-23
+injection_parameters["phi0"] = 2.8
+injection_parameters["psi"] = 0.3
+injection_parameters["cosiota"] = 0.82
 
 detector = "H1"  # the detector to use
 asd = 1e-24  # noise amplitude spectral density
@@ -178,15 +179,34 @@ fig = corner.corner(
 )
 """
 
+posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior50000_SNPE.pkl"
+infile = open(posterior_path,'rb')       #Try to load relevent posterior 
+posterior = pickle.load(infile)
+infile.close()
+print("Prior Loaded - "+posterior_path)
 
+ob_het=generate_het(H0=injection_parameters["h0"]*1e25, PHI0=injection_parameters["phi0"],PSI=injection_parameters["psi"] , COSIOTA=injection_parameters["cosiota"],  fakeasd=injection_parameters["h0"]*1e25/5).data
+observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
+samples = posterior.sample((35,), x=observation)
+
+samples[:,0]=samples[:,0]/1e25
+#print(samples[:,0])
 axes = fig.get_axes()
 axidx = 0
+count=0
 for p in priors.keys():
+   # print(grid.sample_points[p])
+    y=np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence)
+ #   print("///////////////////////////")
     axes[axidx].plot(
         grid.sample_points[p],
-        np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence),
+        y,
+       # np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence),
         "k--",
     )
+    #axes[axidx].plot(samples[:,count],y)
+    print("JS: "+str(js_metric(grid.sample_points[p], samples[:,count])))
+    count+=1
     axidx += 5
 
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
@@ -194,11 +214,7 @@ print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
 
 
-posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior50000_SNPE.pkl"
-infile = open(posterior_path,'rb')       #Try to load relevent posterior 
-posterior = pickle.load(infile)
-infile.close()
-print("Prior Loaded - "+posterior_path)
+
 
 
 print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
