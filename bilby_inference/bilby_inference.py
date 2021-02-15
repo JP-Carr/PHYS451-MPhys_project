@@ -43,18 +43,7 @@ def pickler(path,obj):
 
 start=time.time()
 
-parcontent = """\
-PSRJ     J0123+3456
-RAJ      01:23:45.6789
-DECJ     34:56:54.321
-F0       567.89
-F1       -1.2e-12
-PEPOCH   56789
-H0       1.1e-25
-COSIOTA  0.01
-PSI      1.1
-PHI0     2.4
-"""
+
 
 injection_parameters = OrderedDict()
 injection_parameters["h0"] = 5.12e-23
@@ -65,6 +54,19 @@ injection_parameters["cosiota"] = 0.82
 detector = "H1"  # the detector to use
 asd = 1e-24  # noise amplitude spectral density
 
+parcontent = """\
+PSRJ     J0123+3456
+RAJ      01:23:45.6789
+DECJ     34:56:54.321
+F0       567.89
+F1       -1.2e-12
+PEPOCH   56789
+H0       {}
+COSIOTA  {}
+PSI      {}
+PHI0     {}
+""".format(injection_parameters["h0"], injection_parameters["cosiota"], injection_parameters["psi"] ,injection_parameters["phi0"])
+#print(parcontent)
 
 label = "single_detector_software_injection_linear"
 current_time=datetime.datetime.now()
@@ -185,12 +187,18 @@ posterior = pickle.load(infile)
 infile.close()
 print("Prior Loaded - "+posterior_path)
 
-ob_het=generate_het(H0=injection_parameters["h0"]*1e25, PHI0=injection_parameters["phi0"],PSI=injection_parameters["psi"] , COSIOTA=injection_parameters["cosiota"],  fakeasd=injection_parameters["h0"]*1e25/5).data
+ob_het=generate_het(H0=injection_parameters["h0"]*1e25, PHI0=injection_parameters["phi0"],PSI=injection_parameters["psi"] , COSIOTA=injection_parameters["cosiota"],  fakeasd=asd).data
 observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
-samples = posterior.sample((35,), x=observation)
+samples = posterior.sample((5000,), x=observation)
 
 samples[:,0]=samples[:,0]/1e25
-#print(samples[:,0])
+
+
+x = torch.tensor(samples)
+index = torch.LongTensor([0, 1, 3,2])
+samples = torch.zeros_like(x)
+samples[index] = x
+
 axes = fig.get_axes()
 axidx = 0
 count=0
@@ -200,15 +208,29 @@ for p in priors.keys():
  #   print("///////////////////////////")
     axes[axidx].plot(
         grid.sample_points[p],
-        y,
-       # np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence),
+        np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence),
         "k--",
     )
     #axes[axidx].plot(samples[:,count],y)
+    print(grid.sample_points[p])
+    print(samples[:,count])
     print("JS: "+str(js_metric(grid.sample_points[p], samples[:,count])))
+    print("//////////////////")
     count+=1
     axidx += 5
-
+"""
+_ = corner.corner(
+    samples,
+    fig=fig,
+    color="g",
+    bins=50,
+    smooth=0.9,
+    quantiles=[0.16, 0.84],
+    levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
+    fill_contours=True,
+    hist_kwargs={"density": True},
+    )   
+"""
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
@@ -217,4 +239,4 @@ print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
 
 
-print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
+#print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
