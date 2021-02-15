@@ -19,6 +19,7 @@ import datetime
 from new_comparison import comparisons
 from HeterodynedData import generate_het
 from zplib.scalar_stats.compare_distributions import  js_metric
+from copy import deepcopy
 
 def pickler(path,obj):
     """
@@ -46,10 +47,10 @@ start=time.time()
 
 
 injection_parameters = OrderedDict()
-injection_parameters["h0"] = 5.12e-23
-injection_parameters["phi0"] = 2.8
-injection_parameters["psi"] = 0.3
-injection_parameters["cosiota"] = 0.82
+injection_parameters["h0"] = 1.1e-23#5.12e-23
+injection_parameters["phi0"] = 2.4
+injection_parameters["psi"] = 1.1
+injection_parameters["cosiota"] = 0.31
 
 detector = "H1"  # the detector to use
 asd = 1e-24  # noise amplitude spectral density
@@ -181,7 +182,7 @@ fig = corner.corner(
 )
 """
 
-posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior50000_SNPE.pkl"
+posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior70000_SNPE.pkl"
 infile = open(posterior_path,'rb')       #Try to load relevent posterior 
 posterior = pickle.load(infile)
 infile.close()
@@ -189,21 +190,20 @@ print("Prior Loaded - "+posterior_path)
 
 ob_het=generate_het(H0=injection_parameters["h0"]*1e25, PHI0=injection_parameters["phi0"],PSI=injection_parameters["psi"] , COSIOTA=injection_parameters["cosiota"],  fakeasd=asd).data
 observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
-samples = posterior.sample((5000,), x=observation)
+samples = posterior.sample((10000,), x=observation)
 
 samples[:,0]=samples[:,0]/1e25
 
 
-x = torch.tensor(samples)
-index = torch.LongTensor([0, 1, 3,2])
-samples = torch.zeros_like(x)
-samples[index] = x
+store=deepcopy(samples[:,-2])
+samples[:,-2]=samples[:,-1]
+samples[:,-1]=store
 
 axes = fig.get_axes()
 axidx = 0
 count=0
 for p in priors.keys():
-   # print(grid.sample_points[p])
+    print(p)
     y=np.exp(grid.marginalize_ln_posterior(not_parameters=p) - grid.log_evidence)
  #   print("///////////////////////////")
     axes[axidx].plot(
@@ -218,7 +218,7 @@ for p in priors.keys():
     print("//////////////////")
     count+=1
     axidx += 5
-"""
+
 _ = corner.corner(
     samples,
     fig=fig,
@@ -230,7 +230,7 @@ _ = corner.corner(
     fill_contours=True,
     hist_kwargs={"density": True},
     )   
-"""
+
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
