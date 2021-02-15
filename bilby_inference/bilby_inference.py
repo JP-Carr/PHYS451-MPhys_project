@@ -44,7 +44,7 @@ def pickler(path,obj):
 
 start=time.time()
 
-
+SNR=5
 
 injection_parameters = OrderedDict()
 injection_parameters["h0"] = 1.1e-23#5.12e-23
@@ -53,7 +53,7 @@ injection_parameters["psi"] = 1.1
 injection_parameters["cosiota"] = 0.31
 
 detector = "H1"  # the detector to use
-asd = 1e-24  # noise amplitude spectral density
+asd = injection_parameters["h0"]/5 #1e-24  # noise amplitude spectral density
 
 parcontent = """\
 PSRJ     J0123+3456
