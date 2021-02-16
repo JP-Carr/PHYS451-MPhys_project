@@ -133,3 +133,4 @@ dmypy.json
 sbi-logs/
 Examples/outputs/
 bilby_inference/output
+*.ini
