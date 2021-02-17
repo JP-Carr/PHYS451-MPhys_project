@@ -15,14 +15,14 @@ from matplotlib import pyplot as plt
 sim_iterations=70000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
-observe=True        # Perform parameter estimation on test GW?
+perform_observation=True        # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={r"$H_0\times 10^{25}$": 2.51e-23 *1e25,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
-                        r"$\phi_0$": 2.2,#2.8,
-                        r"$cos(\iota)$": 0.62,#0.3,
-                        r"$\psi$": 1.11#0.82
+observation_parameters={r"$H_0\times 10^{25}$": 1.1e-23 *1e50,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+                        r"$\phi_0$": 2.4,#2.8,
+                        r"$cos(\iota)$": 0.31,#0.3,
+                        r"$\psi$": 1.1#0.82
                         }
 
 dist_vals={r"$H_0\times 10^{25}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
@@ -108,83 +108,115 @@ def simulator(parameter_set):   #links parameters to simulation data
     het_data=torch.from_numpy(c)#parameter_set
     return het_data
     
-#SCRIPT------------------------------------------------------------------------    
-    
-
-if use_CUDA==True:  #Set up device to be used for inference
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    device="gpu"
-else:
-    device="cpu"
-    
-try:
-    threads=cpu_count()  # detirmines number of workers to be used during posterior generation
-except:
-    threads=1
-
-
-posterior_path="posteriors/posterior{}_{}.pkl".format(sim_iterations,inf_method) # Posterior save location
-
-try:    
-    infile = open(posterior_path,'rb')       #Try to load relevent posterior 
-    posterior = pickle.load(infile)
-    infile.close()
-    print("Prior Loaded - "+posterior_path)
-
-except FileNotFoundError:
-    
-    print(posterior_path+" not found.\nGenerating posterior")
-
+def observe(posterior, h0, phi0, psi, cosiota, SNR=5, plot=True, num_samples=50000, verbose=False):
     start=time.time()
-
-    
-    dist_lows=torch.tensor([float(dist_vals[i][0]) for i in dist_vals])   
-    dist_highs=torch.tensor([float(dist_vals[i][1]) for i in dist_vals])
-    
-    prior = utils.BoxUniform(low=dist_lows, high=dist_highs)   # prior constucted from parameter ranges
-    
-    simulator, prior = prepare_for_sbi(simulator, prior) 
-    
-    if inf_method=="SNPE":          #Set inference method
-        inference = SNPE(simulator, prior, density_estimator='mdn', num_workers=threads, device=device)
-    elif inf_method=="SNLE":
-        inference = SNLE(simulator, prior, density_estimator='mdn', num_workers=threads, device=device)
-    elif inf_method=="SNRE":
-        inference = SNRE(simulator, prior, num_workers=threads, device=device)
-    
-    posterior = inference(num_simulations=sim_iterations, proposal=None) # generate prior
-
-    print("\nTraining Duration = {}s".format(round(time.time()-start,2)))
-    
-    if save_posterior==True:
-            pickler(posterior_path,posterior)
-
-
-if observe==True:
-    print(observation_parameters[r"$H_0\times 10^{25}$"]/5)
-    ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{25}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"],  fakeasd=observation_parameters[r"$H_0\times 10^{25}$"]/SNR).data
+   # print(parameters[r"$H_0\times 10^{25}$"]/5)
+    ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota), fakeasd=h0/SNR).data
     observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
-    samples = posterior.sample((50000,), x=observation)
-  #  print(samples[:,0])
- #   log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
+    samples = posterior.sample((num_samples,), x=observation, show_progress_bars=verbose)
 
-    two_sigma=np.percentile(samples, 95,axis=0)
-    minus_two_sigma=np.percentile(samples, 100-95,axis=0)
-    one_sigma=np.percentile(samples, 68,axis=0)
-    minus_one_sigma=np.percentile(samples, 100-68,axis=0)
+    if plot==True:
+        two_sigma=np.percentile(samples, 95,axis=0)
+        minus_two_sigma=np.percentile(samples, 100-95,axis=0)
+        one_sigma=np.percentile(samples, 68,axis=0)
+        minus_one_sigma=np.percentile(samples, 100-68,axis=0)
+        
     
-
-    labels=[i for i in observation_parameters]
-    points=[[j for j in one_sigma],[k for k in minus_one_sigma],[l for l in two_sigma],[n for n in minus_two_sigma],[observation_parameters[i] for i in observation_parameters]]
-   # print(points)
-
-    colours=['#ff7f0e', '#ff7f0e',"#FF0000","#FF0000",'#1f77b4']
-    plot = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points, points_colors=colours)  # plot results
-    print("\a")
-    plt.show()
-else:
-    print("\a")
+        labels=[i for i in observation_parameters]
+        points=[[j for j in one_sigma],[k for k in minus_one_sigma],[l for l in two_sigma],[n for n in minus_two_sigma],[observation_parameters[i] for i in observation_parameters]]
+       # print(points)
     
-if shutdown==True:
-    time.sleep(60)
-    os.system("shutdown") 
+        colours=['#ff7f0e', '#ff7f0e',"#FF0000","#FF0000",'#1f77b4']
+        plot = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points, points_colors=colours)  # plot results
+        if verbose==True:
+            print("\nInference Duration = {}s\a".format(round(time.time()-start,2)))
+        plt.show()
+    elif verbose==True:
+        print("\nInference Duration = {}s\a".format(round(time.time()-start,2)))
+ #   print("\a")
+    return samples
+
+#SCRIPT------------------------------------------------------------------------    
+if __name__=="__main__":
+    start=time.time()    
+    
+    if use_CUDA==True:  #Set up device to be used for inference
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        device="gpu"
+    else:
+        device="cpu"
+        
+    try:
+        threads=cpu_count()  # detirmines number of workers to be used during posterior generation
+    except:
+        threads=1
+    
+    
+    posterior_path="posteriors/posterior{}_{}.pkl".format(sim_iterations,inf_method) # Posterior save location
+    
+    try:    
+        infile = open(posterior_path,'rb')       #Try to load relevent posterior 
+        posterior = pickle.load(infile)
+        infile.close()
+        print("Prior Loaded - "+posterior_path)
+    
+    except FileNotFoundError:
+        
+        print(posterior_path+" not found.\nGenerating posterior")
+        
+        dist_lows=torch.tensor([float(dist_vals[i][0]) for i in dist_vals])   
+        dist_highs=torch.tensor([float(dist_vals[i][1]) for i in dist_vals])
+        
+        prior = utils.BoxUniform(low=dist_lows, high=dist_highs)   # prior constucted from parameter ranges
+        
+        simulator, prior = prepare_for_sbi(simulator, prior) 
+        
+        if inf_method=="SNPE":          #Set inference method
+            inference = SNPE(simulator, prior, density_estimator='mdn', num_workers=threads, device=device)
+        elif inf_method=="SNLE":
+            inference = SNLE(simulator, prior, density_estimator='mdn', num_workers=threads, device=device)
+        elif inf_method=="SNRE":
+            inference = SNRE(simulator, prior, num_workers=threads, device=device)
+        
+        posterior = inference(num_simulations=sim_iterations, proposal=None) # generate prior
+    
+        print("\nTraining Duration = {}s".format(round(time.time()-start,2)))
+        
+        if save_posterior==True:
+                pickler(posterior_path,posterior)
+
+    
+    if perform_observation==True:
+        observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True)
+        
+        """
+        start=time.time()
+        print(observation_parameters[r"$H_0\times 10^{25}$"]/5)
+        ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{25}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"],  fakeasd=observation_parameters[r"$H_0\times 10^{25}$"]/SNR).data
+        observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
+        samples = posterior.sample((50000,), x=observation)
+      #  print(samples[:,0])
+     #   log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
+    
+        two_sigma=np.percentile(samples, 95,axis=0)
+        minus_two_sigma=np.percentile(samples, 100-95,axis=0)
+        one_sigma=np.percentile(samples, 68,axis=0)
+        minus_one_sigma=np.percentile(samples, 100-68,axis=0)
+        
+    
+        labels=[i for i in observation_parameters]
+        points=[[j for j in one_sigma],[k for k in minus_one_sigma],[l for l in two_sigma],[n for n in minus_two_sigma],[observation_parameters[i] for i in observation_parameters]]
+       # print(points)
+    
+        colours=['#ff7f0e', '#ff7f0e',"#FF0000","#FF0000",'#1f77b4']
+        plot = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points, points_colors=colours)  # plot results
+        print("\a")
+        plt.show()
+        print("\nInference Duration = {}s".format(round(time.time()-start,2)))
+        """
+    else:
+        print("\a")
+    
+    if shutdown==True:
+        time.sleep(60)
+        os.system("shutdown") 

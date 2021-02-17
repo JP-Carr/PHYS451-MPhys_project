@@ -1,25 +1,18 @@
 import os
-import subprocess as sp
 from collections import OrderedDict
 import torch
 import corner
-import h5py
-import matplotlib.font_manager as font_manager
 import numpy as np
-from astropy.utils.data import download_file
 from bilby.core.prior import Uniform
 from cwinpy import HeterodynedData
 from cwinpy.pe import pe
-from lalinference import LALInferenceHDF5PosteriorSamplesDatasetName
-from lalinference.io import read_samples
-from matplotlib.lines import Line2D
 import pickle
 import time
 import datetime
-from new_comparison import comparisons
 from HeterodynedData import generate_het
 from zplib.scalar_stats.compare_distributions import  js_metric
 from copy import deepcopy
+from SBI_inference import observe
 
 def pickler(path,obj):
     """
@@ -187,11 +180,12 @@ infile = open(posterior_path,'rb')       #Try to load relevent posterior
 posterior = pickle.load(infile)
 infile.close()
 print("Prior Loaded - "+posterior_path)
-
+"""
 ob_het=generate_het(H0=injection_parameters["h0"]*1e25, PHI0=injection_parameters["phi0"],PSI=injection_parameters["psi"] , COSIOTA=injection_parameters["cosiota"],  fakeasd=asd).data
 observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
 samples = posterior.sample((10000,), x=observation)
-
+"""
+samples=observe(posterior, h0=injection_parameters["h0"]*1e25, phi0=injection_parameters["phi0"], psi=injection_parameters["psi"], cosiota=injection_parameters["cosiota"], plot=False, num_samples=10000)
 samples[:,0]=samples[:,0]/1e25
 
 
