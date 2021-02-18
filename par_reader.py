@@ -1,24 +1,25 @@
 from os import listdir
 import linecache
 import time
-import torch 
+import pandas as pd
 
-target_dir="DAGout/test/pulsars"
-pars=[i for i in listdir(target_dir) if i.endswith(".par")]
-#print(pars)
+def pulsar_par_reader(pulsar_dir):
+    
+    start=time.time()
+    pars=[i for i in listdir(pulsar_dir) if i.endswith(".par")]
 
-start=time.time()
+    parameters=[[linecache.getline(pulsar_dir+"/"+path, line).strip().split(" ")[-1] for line in range(1,10)] for path in pars]    
+        
+    labels=[linecache.getline(pulsar_dir+"/"+pars[0], line).strip().split(" ")[0] for line in range(1,10)]
+    df=pd.DataFrame(data=parameters, columns=labels)
+   # print(labels)
+    #print("\nReader Runtime = {}s".format(round(time.time()-start,4)))
+    return df
 
-parameters=torch.zeros(len(pars),4)
-count=0
-for path in pars:
-    try:
-        data=[float(linecache.getline(target_dir+"/"+path, line).strip().split(" ")[-1]) for line in (6,7,8,9)] #order: phi,iota,phi0,q22
-        parameters[count]=torch.tensor(data)
-    except Exception as e:
-        print(e)
-       
-    count+=1   
-print(parameters)    
 
-print("\nRuntime = {}s".format(round(time.time()-start,2)))
+
+if __name__=="__main__":
+    target_dir="DAGout/test/pulsars"
+    df=pulsar_par_reader(target_dir)
+    
+    print(df["Q22"])
