@@ -9,7 +9,7 @@ test_mode=True
 current_time=datetime.datetime.now()
 if test_mode==True:
     output_dir="DAGout/test"
-    rmdir(output_dir)
+   # rmdir(output_dir)
     mkdir(output_dir)
 else:
     output_dir="DAGout/{}{}_{}{}".format(current_time.day, current_time.month, current_time.hour, current_time.minute)
@@ -30,4 +30,4 @@ prior = PriorDict({
 detectors = ["H1", "L1"]
 
 # generate the population
-run = PEPulsarSimulationDAG(ampdist=ampdist, prior=prior, npulsars=1000, detector=detectors, basedir=output_dir)
+run = PEPulsarSimulationDAG(ampdist=ampdist, prior=prior, npulsars=10, detector=detectors, basedir=output_dir)
