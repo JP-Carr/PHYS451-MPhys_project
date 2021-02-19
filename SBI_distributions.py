@@ -9,15 +9,23 @@ import multiprocessing as mp
 import torch
 import pandas as pd
 from bilby.core.result import Result, ResultList
+from bilby.core.prior import PriorDict, Uniform
+from cwinpy.hierarchical import MassQuadrupoleDistribution
+from bilby.core.prior import HalfNormal
+import numpy as np
 
 parameter_dir="DAGout/test/pulsars"
 posterior_path="posteriors/posterior70000_SNPE.pkl"
 
+phi0range = [0.0, np.pi]
+psirange = [0.0, np.pi / 2.0]
+cosiotarange = [-1.0, 1.0]
+h0range = [0.0, 1e-23]
+q22range=[0.0,1e35]
+
 def process(i):
-    print(i)
-    print()
     data=parameters.iloc[i]
-    
+    print("{} - {}".format(i,data["PSRJ"]))
     h0=q22_to_h0(q22=float(data["Q22"]), dist=float(data["DIST"]), f0=float(data["F0"]))*1e25
     phi0=float(data["PHI0"])
     psi=float(data["PSI"])
@@ -87,17 +95,27 @@ if __name__ == "__main__":
     output=[i for i in raw_output if i != None]
     successes=len(output)
     samples=torch.cat(output,0)
-    #print(samples)
+   # samples=np.array(samples)
+   # print(samples)
+  #  _=input("Press any key to exit\n")
+   # exit()
     print("{} processes complete. {} outside of prior support".format(successes,num_processes-successes))
     print("\nSampling Runtime = {}s".format(round(time.time()-start,2)))
     
+    """
+    x=PriorDict({"q22":Uniform(q22range[0], q22range[1], "q22", latex_label=r"$Q_{22}$"),
+                 "phi0" : Uniform(phi0range[0], phi0range[1], "phi0", latex_label=r"$\phi_0$", unit="rad"),
+                 "psi" : Uniform(psirange[0], psirange[1], "psi", latex_label=r"$\psi$", unit="rad"),
+                 "cosiota" : Uniform(cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$")        
+        })
+    """
     df = pd.DataFrame(data=samples, columns=["q22", "phi0", "cosiota","psi"])
+    del(samples)
     res = Result(posterior=df)  # create a bilby result objects from the DataFrame
+    #res = Result(posterior=df, priors=x, search_parameter_keys=list(x.keys()))
     reslist = ResultList([res])  # create a list of results
   
-    
-    from cwinpy.hierarchical import MassQuadrupoleDistribution
-    from bilby.core.prior import HalfNormal
+
     # set half-normal prior on mean of exponential distribution
     sigma = 1e34
     distkwargs = {"mu": HalfNormal(sigma, name="mu")}
@@ -127,4 +145,4 @@ if __name__ == "__main__":
     from matplotlib import pyplot as pl
     pl.hist(res.posterior["mu"], bins=20)
     
-    _=input("Press any key to exit\n")
+    #_=input("Press any key to exit\n")
