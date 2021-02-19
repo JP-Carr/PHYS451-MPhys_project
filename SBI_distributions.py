@@ -27,6 +27,7 @@ def process(i):
     if h0<1076:
         sample=observe(posterior, h0, phi0, psi, cosiota, plot=False, verbose=False, num_samples=50000)
         sample[:,0]=sample[:,0]/1e25
+        sample[:,0]=h0_to_q22(sample[:,0], dist=float(data["DIST"]), f0=float(data["F0"]))
     else:
         sample=None
     """
@@ -86,11 +87,11 @@ if __name__ == "__main__":
     output=[i for i in raw_output if i != None]
     successes=len(output)
     samples=torch.cat(output,0)
-  #  print(samples)
+    #print(samples)
     print("{} processes complete. {} outside of prior support".format(successes,num_processes-successes))
     print("\nSampling Runtime = {}s".format(round(time.time()-start,2)))
     
-    df = pd.DataFrame(data=samples, columns=["h0", "phi0", "cosiota","psi"])
+    df = pd.DataFrame(data=samples, columns=["q22", "phi0", "cosiota","psi"])
     res = Result(posterior=df)  # create a bilby result objects from the DataFrame
     reslist = ResultList([res])  # create a list of results
   
@@ -109,12 +110,12 @@ if __name__ == "__main__":
         "outdir": "exponential_distribution",
         "label": "test",
         "check_point_plot": False,
-        "sample": "rslice",
+       # "sample": "rslice",
     }
     bins = 1000
     # set MassQuadrupoleDistribution
     mqd = MassQuadrupoleDistribution(
-        data=data,
+        data=reslist,
         distribution="exponential",
         distkwargs=distkwargs,
         bins=bins,
