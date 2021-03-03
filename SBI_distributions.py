@@ -10,6 +10,7 @@ import torch
 import pandas as pd
 from bilby.core.result import Result, ResultList
 from bilby.core.prior import PriorDict, Uniform
+from collections import OrderedDict
 from cwinpy.hierarchical import MassQuadrupoleDistribution
 from bilby.core.prior import HalfNormal
 import numpy as np
@@ -21,7 +22,21 @@ phi0range = [0.0, np.pi]
 psirange = [0.0, np.pi / 2.0]
 cosiotarange = [-1.0, 1.0]
 h0range = [0.0, 1e-23]
-q22range=[0.0,1e35]
+q22range=[0.0,1e38]
+
+priors = OrderedDict()
+priors["q22"] = Uniform(q22range[0], q22range[1], "q22", latex_label=r"$Q_{22}$"
+)
+priors["phi0"] = Uniform(
+    phi0range[0], phi0range[1], "phi0", latex_label=r"$\\phi_0$", unit="rad"
+)
+priors["psi"] = Uniform(
+    psirange[0], psirange[1], "psi", latex_label=r"$\psi$", unit="rad"
+)
+priors["cosiota"] = Uniform(
+    cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\\cos{\\iota}$"
+)
+priors=PriorDict(priors)
 
 def process(i):
     data=parameters.iloc[i]
@@ -33,7 +48,7 @@ def process(i):
     
     #print(h0)
     if h0<1076:
-        sample=observe(posterior, h0, phi0, psi, cosiota, plot=False, verbose=False, num_samples=50000)
+        sample=observe(posterior, h0, phi0, psi, cosiota, plot=False, verbose=False, num_samples=10000)
         sample[:,0]=sample[:,0]/1e25
         sample[:,0]=h0_to_q22(sample[:,0], dist=float(data["DIST"]), f0=float(data["F0"]))
     else:
@@ -94,10 +109,13 @@ if __name__ == "__main__":
     num_processes=len(raw_output)
     output=[i for i in raw_output if i != None]
     successes=len(output)
-    samples=torch.cat(output,0)
+  #  samples=torch.cat(output,0)
+    samples=output
+ #   print(samples[0])
    # samples=np.array(samples)
-   # print(samples)
-  #  _=input("Press any key to exit\n")
+   # print(samples[0])
+   # print(len(samples))
+   # _=input("Press any key to exit\n")
    # exit()
     print("{} processes complete. {} outside of prior support".format(successes,num_processes-successes))
     print("\nSampling Runtime = {}s".format(round(time.time()-start,2)))
@@ -109,18 +127,26 @@ if __name__ == "__main__":
                  "cosiota" : Uniform(cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$")        
         })
     """
-    df = pd.DataFrame(data=samples, columns=["q22", "phi0", "cosiota","psi"])
-    del(samples)
-    res = Result(posterior=df)  # create a bilby result objects from the DataFrame
-    #res = Result(posterior=df, priors=x, search_parameter_keys=list(x.keys()))
-    reslist = ResultList([res])  # create a list of results
-  
+ #   reslist = ResultList([])
+  #  for sample in samples:
+    df = pd.DataFrame(data=samples[0], columns=["q22", "phi0", "cosiota","psi"], dtype=float)
 
+    res = Result(posterior=df, priors=priors, search_parameter_keys=list(priors.keys()))  # create a bilby result objects from the DataFrame
+      #  reslist.append(res)
+        
+   # print(df)
+   # exit()
+    #res = Result(posterior=df, priors=x, search_parameter_keys=list(x.keys())) 
+    reslist = ResultList([res])  # create a list of results
+   # print(len(reslist)==len(samples))
+    #exit()
     # set half-normal prior on mean of exponential distribution
+ 
     sigma = 1e34
     distkwargs = {"mu": HalfNormal(sigma, name="mu")}
     distribution = "exponential"
     # set sampler parameters
+ 
     sampler_kwargs = {
         "sample": "unif",
         "nlive": 500,
@@ -130,7 +156,8 @@ if __name__ == "__main__":
         "check_point_plot": False,
        # "sample": "rslice",
     }
-    bins = 1000
+    bins = 500
+ 
     # set MassQuadrupoleDistribution
     mqd = MassQuadrupoleDistribution(
         data=reslist,
@@ -139,10 +166,29 @@ if __name__ == "__main__":
         bins=bins,
         sampler_kwargs=sampler_kwargs,
     )
+
+    count=0
+    start2=time.time()
+    for sample in samples:
+        if count==0:
+            pass
+        else:
+         #   print(9)
+            df = pd.DataFrame(data=sample, columns=["q22", "phi0", "cosiota","psi"], dtype=float)
+            res = Result(posterior=df, priors=priors, search_parameter_keys=list(priors.keys()))            
+            reslist = ResultList([res])
+            mqd.add_data(reslist)
+            print("{}/{}".format(count+1,len(samples)), end="\r")
+        count+=1
+    print("\nMQD Runtime = {}s".format(round(time.time()-start2,2)))
+    print("\n")
+       
     # run the sampler
     res = mqd.sample()
     # plot the samples
     from matplotlib import pyplot as pl
-    pl.hist(res.posterior["mu"], bins=20)
-    
-    #_=input("Press any key to exit\n")
+    pl.hist(res.posterior["mu"], bins=100)
+    pl.axvline(x=sigma, color="r")
+    pl.show()
+ #   break
+ #   _=input("Press any key to exit\n")
