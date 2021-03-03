@@ -135,3 +135,4 @@ Examples/outputs/
 bilby_inference/output
 *.ini
 DAGout/
+exponential_distribution/
