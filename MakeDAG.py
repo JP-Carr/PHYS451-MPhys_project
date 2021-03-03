@@ -5,6 +5,7 @@ import datetime
 from os import mkdir, rmdir
 
 test_mode=True
+num_pulsars=1000
 
 current_time=datetime.datetime.now()
 if test_mode==True:
@@ -30,4 +31,5 @@ prior = PriorDict({
 detectors = ["H1", "L1"]
 
 # generate the population
-run = PEPulsarSimulationDAG(ampdist=ampdist, prior=prior, npulsars=10, detector=detectors, basedir=output_dir)
+run = PEPulsarSimulationDAG(ampdist=ampdist, prior=prior, npulsars=num_pulsars, detector=detectors, basedir=output_dir)
+print("created {} pulsars".format(num_pulsars))
