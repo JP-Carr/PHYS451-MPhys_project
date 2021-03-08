@@ -15,7 +15,9 @@ from cwinpy.hierarchical import MassQuadrupoleDistribution
 from bilby.core.prior import HalfNormal
 import numpy as np
 
-parameter_dir="DAGout/test/pulsars"
+num_pulsars=100
+
+parameter_dir="DAGout/test{}/pulsars".format(num_pulsars)
 posterior_path="posteriors/posterior70000_SNPE.pkl"
 
 phi0range = [0.0, np.pi]
@@ -40,7 +42,7 @@ priors=PriorDict(priors)
 
 def process(i):
     data=parameters.iloc[i]
-    print("{} - {}".format(i,data["PSRJ"]))
+    print("{} - {}   ".format(i,data["PSRJ"]), end="\r")
     h0=q22_to_h0(q22=float(data["Q22"]), dist=float(data["DIST"]), f0=float(data["F0"]))*1e25
     phi0=float(data["PHI0"])
     psi=float(data["PSI"])
@@ -53,15 +55,9 @@ def process(i):
         sample[:,0]=h0_to_q22(sample[:,0], dist=float(data["DIST"]), f0=float(data["F0"]))
     else:
         sample=None
-    """
-    x=open("values.txt","a")
-    x.write(str(i)+",")
-    x.close()
-    """
-    return sample
-
-
-   
+        
+    return sample  
+    
 if __name__ == "__main__":
     start=time.time()
 
@@ -79,70 +75,32 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print(parameter_dir+" not found")
         exit()
-        
-    """    
-    output=[]   
-    print(len(parameters))
-    for i in range(len(parameters)):
-        sample=process(i)
-      #  print(sample)
-        output.append(sample)
-    """ 
-        
-    """
-    x=parameters.iloc[47]
-    h0=q22_to_h0(q22=float(x["Q22"]), dist=float(x["DIST"]), f0=float(x["F0"]))*1e25
-    phi0=float(x["PHI0"])
-    psi=float(x["PSI"])
-    cosiota=cos(float(x["IOTA"]))
-    print(h0,phi0,cosiota,psi)
-    exit()
-    """
+
     
     max_processes = mp.cpu_count()/2  # number of simultaneous processes cannot excede the number of logical processors
-    pool = mp.Pool(int(max_processes))
-    processes = pool.map_async(process, range(len(parameters))) # Assign processes to the processing pool
-    pool.close() #finish assigning
-    pool.join() #begins multiprocessing
-    raw_output=processes.get()
+    #pool = mp.Pool(int(max_processes))
+    with mp.Pool(int(max_processes)) as pool:
+        processes = pool.map_async(process, range(len(parameters))) # Assign processes to the processing pool
+        pool.close() #finish assigning
+        pool.join() #begins multiprocessing
+        raw_output=processes.get()
     
     num_processes=len(raw_output)
     output=[i for i in raw_output if i != None]
     successes=len(output)
-  #  samples=torch.cat(output,0)
     samples=output
- #   print(samples[0])
-   # samples=np.array(samples)
-   # print(samples[0])
-   # print(len(samples))
-   # _=input("Press any key to exit\n")
-   # exit()
+
     print("{} processes complete. {} outside of prior support".format(successes,num_processes-successes))
     print("\nSampling Runtime = {}s".format(round(time.time()-start,2)))
     
-    """
-    x=PriorDict({"q22":Uniform(q22range[0], q22range[1], "q22", latex_label=r"$Q_{22}$"),
-                 "phi0" : Uniform(phi0range[0], phi0range[1], "phi0", latex_label=r"$\phi_0$", unit="rad"),
-                 "psi" : Uniform(psirange[0], psirange[1], "psi", latex_label=r"$\psi$", unit="rad"),
-                 "cosiota" : Uniform(cosiotarange[0], cosiotarange[1], "cosiota", latex_label=r"$\cos{\iota}$")        
-        })
-    """
- #   reslist = ResultList([])
-  #  for sample in samples:
+
     df = pd.DataFrame(data=samples[0], columns=["q22", "phi0", "cosiota","psi"], dtype=float)
 
     res = Result(posterior=df, priors=priors, search_parameter_keys=list(priors.keys()))  # create a bilby result objects from the DataFrame
-      #  reslist.append(res)
-        
-   # print(df)
-   # exit()
-    #res = Result(posterior=df, priors=x, search_parameter_keys=list(x.keys())) 
+
     reslist = ResultList([res])  # create a list of results
-   # print(len(reslist)==len(samples))
-    #exit()
-    # set half-normal prior on mean of exponential distribution
- 
-    sigma = 1e34
+
+    sigma = 1e34 # set half-normal prior on mean of exponential distribution
     distkwargs = {"mu": HalfNormal(sigma, name="mu")}
     distribution = "exponential"
     # set sampler parameters
@@ -169,17 +127,18 @@ if __name__ == "__main__":
 
     count=0
     start2=time.time()
+ 
     for sample in samples:
         if count==0:
             pass
         else:
-         #   print(9)
             df = pd.DataFrame(data=sample, columns=["q22", "phi0", "cosiota","psi"], dtype=float)
             res = Result(posterior=df, priors=priors, search_parameter_keys=list(priors.keys()))            
             reslist = ResultList([res])
             mqd.add_data(reslist)
             print("{}/{}".format(count+1,len(samples)), end="\r")
         count+=1
+
     print("\nMQD Runtime = {}s".format(round(time.time()-start2,2)))
     print("\n")
        
@@ -189,6 +148,5 @@ if __name__ == "__main__":
     from matplotlib import pyplot as pl
     pl.hist(res.posterior["mu"], bins=100)
     pl.axvline(x=sigma, color="r")
+    print(len(mqd._posterior_samples))
     pl.show()
- #   break
- #   _=input("Press any key to exit\n")
