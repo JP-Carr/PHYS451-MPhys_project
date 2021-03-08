@@ -4,7 +4,7 @@ import time
 import pandas as pd
 
 def pulsar_par_reader(pulsar_dir):
-    
+    print("Processing {} pulsars...".format(len(listdir(pulsar_dir))))
     start=time.time()
     pars=[i for i in listdir(pulsar_dir) if i.endswith(".par")]
 
