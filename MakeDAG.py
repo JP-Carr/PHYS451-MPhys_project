@@ -5,11 +5,11 @@ import datetime
 from os import mkdir, rmdir
 
 test_mode=True
-num_pulsars=1000
+num_pulsars=500
 
 current_time=datetime.datetime.now()
 if test_mode==True:
-    output_dir="DAGout/test"
+    output_dir="DAGout/test{}".format(num_pulsars)
    # rmdir(output_dir)
     mkdir(output_dir)
 else:
