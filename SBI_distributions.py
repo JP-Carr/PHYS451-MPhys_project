@@ -14,11 +14,14 @@ from collections import OrderedDict
 from cwinpy.hierarchical import MassQuadrupoleDistribution
 from bilby.core.prior import HalfNormal
 import numpy as np
+from matplotlib import pyplot as plt
+torch.multiprocessing.set_sharing_strategy('file_system')
 
-num_pulsars=100
+num_pulsars=1000
 
 parameter_dir="DAGout/test{}/pulsars".format(num_pulsars)
 posterior_path="posteriors/posterior70000_SNPE.pkl"
+
 
 phi0range = [0.0, np.pi]
 psirange = [0.0, np.pi / 2.0]
@@ -48,9 +51,13 @@ def process(i):
     psi=float(data["PSI"])
     cosiota=cos(float(data["IOTA"]))
     
+    f0=float(data["F0"])
+    raj=data["RAJ"]
+    decj=data["DECJ"]
+    
     #print(h0)
-    if h0<1076:
-        sample=observe(posterior, h0, phi0, psi, cosiota, plot=False, verbose=False, num_samples=10000)
+    if h0<500:#1076:
+        sample=observe(posterior, h0, phi0, psi, cosiota, F0=f0, RAJ=raj, DECJ=decj, plot=False, verbose=False, num_samples=10000)
         sample[:,0]=sample[:,0]/1e25
         sample[:,0]=h0_to_q22(sample[:,0], dist=float(data["DIST"]), f0=float(data["F0"]))
     else:
@@ -100,7 +107,7 @@ if __name__ == "__main__":
 
     reslist = ResultList([res])  # create a list of results
 
-    sigma = 1e34 # set half-normal prior on mean of exponential distribution
+    sigma = 1e34# set half-normal prior on mean of exponential distribution
     distkwargs = {"mu": HalfNormal(sigma, name="mu")}
     distribution = "exponential"
     # set sampler parameters
@@ -127,8 +134,17 @@ if __name__ == "__main__":
 
     count=0
     start2=time.time()
- 
+  
+    a=plt.figure(1)
+    plt.xlabel(r"$Q_{22}$")
+    
     for sample in samples:
+        q22=sample[:,0]
+        y=np.arange(len(q22))
+      #  print(max(q22))
+     #   plt.plot(q22,y)
+        plt.hist(q22, bins=100, alpha=0.5)
+        
         if count==0:
             pass
         else:
@@ -138,15 +154,17 @@ if __name__ == "__main__":
             mqd.add_data(reslist)
             print("{}/{}".format(count+1,len(samples)), end="\r")
         count+=1
-
+      
     print("\nMQD Runtime = {}s".format(round(time.time()-start2,2)))
     print("\n")
-       
+    a.show()
+  #  exit() 
     # run the sampler
     res = mqd.sample()
     # plot the samples
-    from matplotlib import pyplot as pl
-    pl.hist(res.posterior["mu"], bins=100)
-    pl.axvline(x=sigma, color="r")
+    hist=plt.figure(2)
+    plt.xlabel("mu")
+    plt.hist(res.posterior["mu"], bins=100)
+    plt.axvline(x=sigma, color="r")
     print(len(mqd._posterior_samples))
-    pl.show()
+    hist.show()

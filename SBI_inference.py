@@ -12,14 +12,14 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=70000  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=10000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 perform_observation=True        # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={r"$H_0\times 10^{25}$": 1.1e-23 *1e50,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+observation_parameters={r"$H_0\times 10^{25}$": 1.1e-23 *1e25,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
                         r"$\phi_0$": 2.4,#2.8,
                         r"$cos(\iota)$": 0.31,#0.3,
                         r"$\psi$": 1.1#0.82
@@ -97,7 +97,7 @@ def simulator(parameter_set):   #links parameters to simulation data
     cosiota=float(parameter_set[2])
     psi=float(parameter_set[3])
   #  print(h0,phi0,cosiota,psi)
-    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi, fakeasd=5.12e-23 *1e25/SNR).data
+    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi).data*1e25
 
     if use_CUDA==True:
         get_gpu_memory()
@@ -105,13 +105,17 @@ def simulator(parameter_set):   #links parameters to simulation data
     r=het.real    
     i=het.imag    
     c=np.concatenate((r,i))
-    het_data=torch.from_numpy(c)#parameter_set
+    het_data=torch.from_numpy(c)   #parameter_set
     return het_data
     
-def observe(posterior, h0, phi0, psi, cosiota, SNR=5, plot=True, num_samples=50000, verbose=False):
+def observe(posterior, h0, phi0, psi, cosiota, F0=None, RAJ=None, DECJ=None, plot=True, num_samples=50000, verbose=False):
     start=time.time()
    # print(parameters[r"$H_0\times 10^{25}$"]/5)
-    ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota), fakeasd=h0/SNR).data
+    if F0==None or RAJ==None or DECJ==None:
+        print("fallback")
+        ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota)).data*1e25
+    else:
+        ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota), F0=F0, RAJ=RAJ, DECJ=DECJ).data*1e25
     observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
     samples = posterior.sample((num_samples,), x=observation, show_progress_bars=verbose)
 
