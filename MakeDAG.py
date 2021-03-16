@@ -1,11 +1,14 @@
 from cwinpy.pe.simulation import PEPulsarSimulationDAG
-from bilby.core.prior import PriorDict, Uniform, Exponential, Sine
+from bilby.core.prior import PriorDict, Uniform, Exponential, Sine, DeltaFunction
 import numpy as np
 import datetime
 from os import mkdir, rmdir
+import time
 
 test_mode=True
-num_pulsars=500
+num_pulsars=1000
+
+start=time.time()
 
 current_time=datetime.datetime.now()
 if test_mode==True:
@@ -20,6 +23,7 @@ mean = 1e33
 ampdist = Exponential(name="q22", mu=mean)
 
 # set the prior distribution for use in parameter estimation
+
 prior = PriorDict({
     "h0": Uniform(0.0, 1e-22, name="h0"),
     "iota": Sine(name="iota"),
@@ -33,3 +37,4 @@ detectors = ["H1", "L1"]
 # generate the population
 run = PEPulsarSimulationDAG(ampdist=ampdist, prior=prior, npulsars=num_pulsars, detector=detectors, basedir=output_dir)
 print("created {} pulsars".format(num_pulsars))
+print("\nRuntime = {}s".format(round(time.time()-start,2)))
