@@ -63,7 +63,7 @@ def generate_het(H0, COSIOTA, PSI, PHI0, F0=567.89, RAJ="103:7:56.651", DECJ="30
         detector=detector,
         bbminlength=1e10000
     )
-  #  print(3)
+    print(het.signal_snr(par))
     return het
 
 if __name__=="__main__":
