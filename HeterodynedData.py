@@ -63,7 +63,7 @@ def generate_het(H0, COSIOTA, PSI, PHI0, F0=567.89, RAJ="103:7:56.651", DECJ="30
         detector=detector,
         bbminlength=1e10000
     )
-    print(het.signal_snr(par))
+  
     return het
 
 if __name__=="__main__":
@@ -108,7 +108,7 @@ if __name__=="__main__" and run==True:
         fakeasd=1e-24,
         detector=detector,
     )
-    print(het.data)
+ 
     #print(type(het.par))
     #np.save("het.npy",(het.data))
  #   het.write("data.txt")
