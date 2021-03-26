@@ -12,24 +12,24 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=10000  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=80000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
-perform_observation=True        # Perform parameter estimation on test GW?
+perform_observation=True   # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={r"$H_0\times 10^{25}$": 1.1e-23 *1e25,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
-                        r"$\phi_0$": 2.4,#2.8,
-                        r"$cos(\iota)$": 0.31,#0.3,
-                        r"$\psi$": 1.1#0.82
+observation_parameters={r"$H_0\times 10^{25}$": 9.087957135017964e-26*1e25,#1.1e-23 *1e25,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+                        r"$\phi_0$": 0.7769275287194411517,#2.8,
+                        r"$cos(\iota)$": 0.515496,#0.3,
+                        r"$\psi$": 1.4744513502625564705#0.82
                         }
 
 dist_vals={r"$H_0\times 10^{25}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
                r"$\phi_0$": [0., np.pi],
                r"$cos(\iota)$": [-1., 1.],
                r"$\psi$": [0., np.pi/2]
-               }
+               } #j1727-0755
 
 SNR=5
 
@@ -191,33 +191,8 @@ if __name__=="__main__":
 
     
     if perform_observation==True:
-        observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True)
-        
-        """
-        start=time.time()
-        print(observation_parameters[r"$H_0\times 10^{25}$"]/5)
-        ob_het=generate_het(H0=observation_parameters[r"$H_0\times 10^{25}$"], PHI0=observation_parameters[r"$\phi_0$"],PSI=observation_parameters[r"$\psi$"] , COSIOTA=observation_parameters[r"$cos(\iota)$"],  fakeasd=observation_parameters[r"$H_0\times 10^{25}$"]/SNR).data
-        observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
-        samples = posterior.sample((50000,), x=observation)
-      #  print(samples[:,0])
-     #   log_probability = posterior.log_prob(samples, x=observation,norm_posterior=False)
-    
-        two_sigma=np.percentile(samples, 95,axis=0)
-        minus_two_sigma=np.percentile(samples, 100-95,axis=0)
-        one_sigma=np.percentile(samples, 68,axis=0)
-        minus_one_sigma=np.percentile(samples, 100-68,axis=0)
-        
-    
-        labels=[i for i in observation_parameters]
-        points=[[j for j in one_sigma],[k for k in minus_one_sigma],[l for l in two_sigma],[n for n in minus_two_sigma],[observation_parameters[i] for i in observation_parameters]]
-       # print(points)
-    
-        colours=['#ff7f0e', '#ff7f0e',"#FF0000","#FF0000",'#1f77b4']
-        plot = utils.pairplot(samples, limits=None, fig_size=(6,6), labels=labels ,points=points, points_colors=colours)  # plot results
-        print("\a")
-        plt.show()
-        print("\nInference Duration = {}s".format(round(time.time()-start,2)))
-        """
+     #   observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True)
+        observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True, F0=282.2588318211538194191, RAJ="17:27:27.005928305039", DECJ="-07:55:08.752768153206")
     else:
         print("\a")
     
