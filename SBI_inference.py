@@ -12,25 +12,29 @@ from matplotlib import pyplot as plt
 
 #VARIABLES---------------------------------------------------------------------
 
-sim_iterations=80000  # Number of simulation to be performed during posterior generation(3 minimum)
+sim_iterations=6000  # Number of simulation to be performed during posterior generation(3 minimum)
 inf_method="SNPE"    # SBI inference method (SNPE, SNLE, SNRE)
 use_CUDA=False       # Utilise GPU during training - not recommended
 perform_observation=True   # Perform parameter estimation on test GW?
 save_posterior=True  # Save generated posterior?
 shutdown=False       # Shutdown device after script completion?
 
-observation_parameters={r"$H_0\times 10^{25}$": 9.087957135017964e-26*1e25,#1.1e-23 *1e25,#5.12e-23 *1e25,   # paramters for test GW (must be floats)
+observation_parameters={r"$H_0\times 10^{25}$": 5.12e-23 *1e25,#9.087957135017964e-26*1e25,#1.1e-23 *1e25,   # paramters for test GW (must be floats)
                         r"$\phi_0$": 0.7769275287194411517,#2.8,
                         r"$cos(\iota)$": 0.515496,#0.3,
-                        r"$\psi$": 1.4744513502625564705#0.82
+                        r"$\psi$": 0.82,#1.4744513502625564705,
+                        "RAJ": 1.58,
+                        "cos(DECJ)":0.25
                         }
 
 dist_vals={r"$H_0\times 10^{25}$": torch.tensor([0., 1e-22]) *1e25,    #parameter distributions [low, highs]
                r"$\phi_0$": [0., np.pi],
                r"$cos(\iota)$": [-1., 1.],
-               r"$\psi$": [0., np.pi/2]
+               r"$\psi$": [0., np.pi/2],
+               "RAJ": [0., 2*np.pi],
+               "cos(DECJ)":[-1., 1.]
                } #j1727-0755
-
+#RAJ="103:7:56.651", DECJ="30:56:22.995"
 SNR=5
 
 #FUNCTIONS---------------------------------------------------------------------
@@ -96,8 +100,10 @@ def simulator(parameter_set):   #links parameters to simulation data
     phi0=float(parameter_set[1])
     cosiota=float(parameter_set[2])
     psi=float(parameter_set[3])
+    raj=float(parameter_set[4])
+    decj=np.arccos(float(parameter_set[5]))
   #  print(h0,phi0,cosiota,psi)
-    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi).data*1e25
+    het=generate_het(H0=h0, PHI0=phi0, COSIOTA=cosiota, PSI=psi, RAJ=raj, DECJ=decj).data*1e25
 
     if use_CUDA==True:
         get_gpu_memory()
@@ -111,11 +117,16 @@ def simulator(parameter_set):   #links parameters to simulation data
 def observe(posterior, h0, phi0, psi, cosiota, F0=None, RAJ=None, DECJ=None, plot=True, num_samples=50000, verbose=False):
     start=time.time()
    # print(parameters[r"$H_0\times 10^{25}$"]/5)
-    if F0==None or RAJ==None or DECJ==None:
-        print("fallback")
+    if F0==None and RAJ==None and DECJ==None:
+        print("fallback1")
         ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota)).data*1e25
+    elif F0==None:
+        print("fallback2")
+        ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota), RAJ=float(RAJ), DECJ=float(DECJ)).data*1e25
     else:
         ob_het=generate_het(H0=float(h0), PHI0=float(phi0), PSI=float(psi), COSIOTA=float(cosiota), F0=F0, RAJ=RAJ, DECJ=DECJ).data*1e25
+   
+    
     observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
     samples = posterior.sample((num_samples,), x=observation, show_progress_bars=verbose)
 
@@ -156,7 +167,7 @@ if __name__=="__main__":
         threads=1
     
     
-    posterior_path="posteriors/posterior{}_{}.pkl".format(sim_iterations,inf_method) # Posterior save location
+    posterior_path="posteriors/posterior{}_{}new.pkl".format(sim_iterations,inf_method) # Posterior save location
     
     try:    
         infile = open(posterior_path,'rb')       #Try to load relevent posterior 
@@ -192,7 +203,7 @@ if __name__=="__main__":
     
     if perform_observation==True:
      #   observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True)
-        observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True, F0=282.2588318211538194191, RAJ="17:27:27.005928305039", DECJ="-07:55:08.752768153206")
+        observe(posterior, h0=observation_parameters[r"$H_0\times 10^{25}$"], phi0=observation_parameters[r"$\phi_0$"], psi=observation_parameters[r"$\psi$"], cosiota=observation_parameters[r"$cos(\iota)$"], verbose=True, F0=282.2588318211538194191, RAJ=observation_parameters["RAJ"], DECJ=observation_parameters["cos(DECJ)"])
     else:
         print("\a")
     
