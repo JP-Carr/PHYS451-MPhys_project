@@ -40,8 +40,8 @@ def generate_het(H0, COSIOTA, PSI, PHI0, F0=567.89, RAJ="103:7:56.651", DECJ="30
       #  print(0)
         par = PulsarParametersPy()  # create an empty object
         par["PSRJ"] = parname  # give it a name
-        par["RAJ"] = Angle(RAJ+" degrees").rad  # give it a right ascension (in rads)
-        par["DECJ"] = Angle(DECJ+" degrees").rad  # give it a declination (in rads)
+        par["RAJ"] = Angle(RAJ+" degrees").rad if type(RAJ)==str else float(RAJ)  # give it a right ascension (in rads)
+        par["DECJ"] = Angle(DECJ+" degrees").rad if type(DECJ)==str else float(DECJ)  # give it a declination (in rads)
         par["F"] = [F0] # give it a frequency (in Hz)
         par["H0"] = H0  # give it a gravitational-wave amplitude (between 0 and 1e-22)
         par["COSIOTA"] = COSIOTA  # give it a value of cos(iota) (between -1 and 1)
