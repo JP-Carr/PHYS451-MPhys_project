@@ -40,10 +40,11 @@ start=time.time()
 SNR=5
 
 injection_parameters = OrderedDict()
-injection_parameters["h0"] = 1.1e-23#5.12e-23
-injection_parameters["phi0"] = 2.4
-injection_parameters["psi"] = 1.1
-injection_parameters["cosiota"] = 0.31
+injection_parameters["h0"] = 9.087957135017964e-26#5.12e-23
+injection_parameters["phi0"] = 0.7769275287194411517#2.4
+injection_parameters["psi"] = 1.4744513502625564705#1.1
+injection_parameters["cosiota"] = 0.515496
+
 
 detector = "H1"  # the detector to use
 asd = injection_parameters["h0"]/5 #1e-24  # noise amplitude spectral density
@@ -175,7 +176,7 @@ fig = corner.corner(
 )
 """
 
-posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior70000_SNPE.pkl"
+posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior80000_SNPE.pkl"
 infile = open(posterior_path,'rb')       #Try to load relevent posterior 
 posterior = pickle.load(infile)
 infile.close()
