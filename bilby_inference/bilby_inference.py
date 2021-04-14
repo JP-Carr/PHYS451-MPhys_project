@@ -13,6 +13,9 @@ from HeterodynedData import generate_het
 from zplib.scalar_stats.compare_distributions import  js_metric
 from copy import deepcopy
 from SBI_inference import observe
+from new_comparison import comparisons
+from sys import exit
+
 
 def pickler(path,obj):
     """
@@ -40,10 +43,10 @@ start=time.time()
 SNR=5
 
 injection_parameters = OrderedDict()
-injection_parameters["h0"] = 9.087957135017964e-26#5.12e-23
-injection_parameters["phi0"] = 0.7769275287194411517#2.4
-injection_parameters["psi"] = 1.4744513502625564705#1.1
-injection_parameters["cosiota"] = 0.515496
+injection_parameters["h0"] = 5.12e-23
+injection_parameters["phi0"] = 0.777
+injection_parameters["psi"] = 0.515
+injection_parameters["cosiota"] = 0.820
 
 
 detector = "H1"  # the detector to use
@@ -74,7 +77,7 @@ with open(parfile, "w") as fp:
     fp.write(parcontent)
 
 times = np.linspace(1000000000.0, 1000086340.0, 1440)
-
+start_cwinpy=time.time()
 het = HeterodynedData(
     times=times,
     par=parfile,
@@ -159,9 +162,10 @@ grunner = pe(
 grid = grunner.grid
    
     
-
+print(time.time()-start_cwinpy)
     
 fig = result.plot_corner(save=False, parameters=injection_parameters, color="b")
+#exit()
 """
 fig = corner.corner(
     postsamples,
@@ -175,8 +179,8 @@ fig = corner.corner(
     hist_kwargs={"density": True},
 )
 """
-
-posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior80000_SNPE.pkl"
+start_sbi=time.time()
+posterior_path="/home/james/Documents/GitHub/PHYS451-MPhys_project/posteriors/posterior80000_SNPEnew.pkl"
 infile = open(posterior_path,'rb')       #Try to load relevent posterior 
 posterior = pickle.load(infile)
 infile.close()
@@ -187,13 +191,16 @@ observation=torch.from_numpy(np.concatenate((ob_het.real,ob_het.imag)))
 samples = posterior.sample((10000,), x=observation)
 """
 samples=observe(posterior, h0=injection_parameters["h0"]*1e25, phi0=injection_parameters["phi0"], psi=injection_parameters["psi"], cosiota=injection_parameters["cosiota"], plot=False, num_samples=10000)
+print(time.time()-start_sbi)
 samples[:,0]=samples[:,0]/1e25
 
 
 store=deepcopy(samples[:,-2])
 samples[:,-2]=samples[:,-1]
 samples[:,-1]=store
-
+print("---------------------------")
+print(samples)
+#exit()
 axes = fig.get_axes()
 axidx = 0
 count=0
@@ -213,9 +220,9 @@ for p in priors.keys():
     print("//////////////////")
     count+=1
     axidx += 5
-
+"""
 _ = corner.corner(
-    samples,
+    samples[:,0:4],
     fig=fig,
     color="g",
     bins=50,
@@ -225,7 +232,7 @@ _ = corner.corner(
     fill_contours=True,
     hist_kwargs={"density": True},
     )   
-
+"""
 fig.savefig(os.path.join(outdir, "{}_corner.png".format(label)), dpi=150)
 print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
@@ -234,4 +241,4 @@ print("\nRuntime = {}s".format(round(time.time()-start,2)))
 
 
 
-#print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
+print(comparisons(label, outdir, grid, priors, posterior, injection_parameters, cred=0.9))
